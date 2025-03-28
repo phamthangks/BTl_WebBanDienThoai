@@ -150,8 +150,11 @@ namespace WebBanDienThoai.API.Controllers
                     return BadRequest("No file uploaded");
 
                 // Đường dẫn tới thư mục lưu ảnh
-                string uploadsFolder = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "PhoneImages", "Images");
+                string solutionDirectory = Directory.GetParent(Directory.GetCurrentDirectory()).FullName;
 
+                string uploadsFolder = Path.Combine(solutionDirectory, "WebBanDienThoai.MVC", "wwwroot", "PhoneImages", "Images");
+
+                Console.WriteLine($"Upload Folder Path: {uploadsFolder}");
                 // Tạo tên file độc nhất
                 string uniqueFileName = Guid.NewGuid().ToString() + "_" + file.FileName;
 

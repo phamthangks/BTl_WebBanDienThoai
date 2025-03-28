@@ -202,7 +202,7 @@
         </div>
         <button type="button" class="btn btn-secondary" onclick="addMauEntry()">Thêm Màu</button>
         <div class="form-group">
-            <input onclick="addANewProduct('https://localhost:7244/api/sanphamapi/'); return false;" value="Create" class="btn btn-primary" />
+            <input onclick="addANewProduct('https://localhost:7145/api/sanphamapi/'); return false;" value="Create" class="btn btn-primary" />
         </div>
     </form>
 </div>
@@ -449,7 +449,7 @@
                     formData.append('maSanPham', maSanPham);
                     formData.append('maMau', maMau);
 
-                    const promise = fetch('https://localhost:7244/api/ProductAPI/UploadImage', {
+                    const promise = fetch('https://localhost:7145/api/ProductAPI/UploadImage', {
                         method: 'POST',
                         body: formData
                     }).then(response => {
@@ -594,7 +594,7 @@
         formData.append('file', file);
 
         try {
-            const response = await fetch('https://localhost:7244/api/ProductAPI/UploadImage', {
+            const response = await fetch('https://localhost:7145/api/ProductAPI/UploadImage', {
                 method: 'POST',
                 body: formData
             });
@@ -855,7 +855,7 @@
 
         };
         $.ajax({
-            url: 'https://localhost:7244/api/sanphamapi/SuaSanPham',  // Đảm bảo endpoint đúng với phương thức sửa sản phẩm
+            url: 'https://localhost:7145/api/sanphamapi/SuaSanPham',  // Đảm bảo endpoint đúng với phương thức sửa sản phẩm
             method: 'PUT',       // Hoặc 'PUT' tùy cấu hình API của bạn
             contentType: 'application/json',
             data: JSON.stringify(sanPham),
@@ -909,7 +909,7 @@
         formData.append('tenDangNhap', '@Context.Session.GetString("Username")');
 
         $.ajax({
-            url: 'https://localhost:7244/api/sanphamapi/SaveHistory',
+            url: 'https://localhost:7145/api/sanphamapi/SaveHistory',
             type: 'POST',
             data: formData,
             processData: false,
@@ -1028,7 +1028,7 @@
     }
     async function editProduct(maSanPham) {
         try {
-            const response = await fetch(`https://localhost:7244/api/ProductAPI/${maSanPham}`);
+            const response = await fetch(`https://localhost:7145/api/ProductAPI/${maSanPham}`);
             if (!response.ok) {
                 const errorText = await response.text();
                 throw new Error(`Failed to fetch product data: ${errorText}`);
@@ -1291,7 +1291,7 @@
                 </td>
                 <td>
                     <a href="#" onclick="editProduct('@item.MaSanPham'); return false;" class="btn btn-danger delete-btn">Sửa</a>
-                    <a onclick="deleteProduct('https://localhost:7244/api/sanphamapi','@item.MaSanPham'); return false;" value="Delete" class="btn btn-danger delete-btn">Xóa</a>
+                    <a onclick="deleteProduct('https://localhost:7145/api/sanphamapi','@item.MaSanPham'); return false;" value="Delete" class="btn btn-danger delete-btn">Xóa</a>
                     <!-- View Image Button -->
                     <button type="button" class="btn btn-danger delete-btn" data-bs-toggle="modal" data-bs-target="#imageModal_@item.MaSanPham">
                         Xem ảnh
