@@ -1,0 +1,238 @@
+﻿@inject BTLW_BDT.Models.BtlLtwQlbdtContext _context
+@{
+    ViewData["Title"] = "DetailCart";
+    Layout = "~/Views/Shared/_LayoutCart.cshtml";
+}
+@model List<BTLW_BDT.Models.ChiTietGioHang>
+@if (TempData["Error"] != null)
+{
+    <div class="alert alert-danger">
+        @TempData["Error"]
+    </div>
+}
+<div class="row px-xl-5">
+    <div class="col-lg-8 table-responsive mb-5">
+        <table class="table table-bordered text-center mb-0">
+            <thead class="bg-secondary text-dark">
+                <tr>
+                    <th>Products</th>
+                    <th>Color</th>
+                    <th>ROM</th>
+                    <th>Price</th>
+                    <th>Quantity</th>
+                    <th>Total</th>
+                    <th>Remove</th>
+                </tr>
+            </thead>
+            <tbody class="align-middle">
+                @foreach (var item in Model)
+                {
+                    var sanPham = _context.SanPhams.FirstOrDefault(s => s.MaSanPham == item.MaSanPham);
+                    var mauSac = _context.MauSacs.FirstOrDefault(m => m.MaMau == item.ThongSoMau);
+                    var rom = _context.Roms.FirstOrDefault(r => r.MaRom == item.ThongSoRom);
+                    var danhSachRom = _context.Roms.Where(r => r.MaSanPham == item.MaSanPham).ToList();
+                    var baseRom = danhSachRom.OrderBy(r => r.Gia).FirstOrDefault();
+
+                    decimal baseRomGia = baseRom?.Gia.GetValueOrDefault() ?? 0;
+                    decimal selectedRomGia = rom?.Gia.GetValueOrDefault() ?? 0;
+                    decimal donGia = (selectedRomGia - baseRomGia) + sanPham.DonGiaBanRa.GetValueOrDefault();
+                    var tongTien = donGia * item.SoLuong;
+
+                    <tr>
+                        <td class="align-middle">
+                            <a asp-controller="Home"
+                               asp-action="ProductDetail"
+                               asp-route-maSp="@item.MaSanPham"
+                               asp-route-maMau="@item.ThongSoMau"
+                               asp-route-maRom="@item.ThongSoRom"
+                               class="text-dark">
+                                <img src="~/PhoneImages/Images/@sanPham.AnhDaiDien" alt="@sanPham.TenSanPham" style="width: 50px;">
+                                @sanPham.TenSanPham
+                            </a>
+                        </td>
+                        <td class="align-middle">
+                            @(mauSac?.TenMau ?? "N/A")
+                        </td>
+                        <td class="align-middle">
+                            @(rom?.ThongSo ?? "N/A")
+                        </td>
+                        <td class="align-middle">
+                            @Convert.ToDouble(donGia).ToString("N0") VNĐ
+                        </td>
+                        <td class="align-middle">
+                            <div class="input-group quantity mx-auto" style="width: 100px;">
+                                <div class="input-group-btn">
+                                    <button class="btn btn-sm btn-primary btn-minus"
+                                            data-masp="@item.MaSanPham"
+                                            data-mamau="@item.ThongSoMau"
+                                            data-marom="@item.ThongSoRom">
+                                        <i class="fa fa-minus"></i>
+                                    </button>
+                                </div>
+                                <input type="text" class="form-control form-control-sm bg-secondary text-center quantity-input"
+                                       value="@item.SoLuong" readonly>
+                                <div class="input-group-btn">
+                                    <button class="btn btn-sm btn-primary btn-plus"
+                                            data-masp="@item.MaSanPham"
+                                            data-mamau="@item.ThongSoMau"
+                                            data-marom="@item.ThongSoRom">
+                                        <i class="fa fa-plus"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </td>
+
+                       
+                        <td class="align-middle">
+                            @Convert.ToDouble(tongTien).ToString("N0") VNĐ
+                        </td>
+                        <td class="align-middle">
+                            <form asp-controller="Cart" asp-action="RemoveFromCart" method="post">
+                                <input type="hidden" name="maSanPham" value="@item.MaSanPham" />
+                                <input type="hidden" name="maMau" value="@item.ThongSoMau" />
+                                <input type="hidden" name="maRom" value="@item.ThongSoRom" />
+                                <button type="submit" class="btn btn-sm btn-primary">
+                                    <i class="fa fa-times"></i>
+                                </button>
+                            </form>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+    <div class="col-lg-4">
+        <form class="mb-5" action="">
+            <div class="input-group">
+                <input type="text" class="form-control p-4" placeholder="Coupon Code">
+                <div class="input-group-append">
+                    <button class="btn btn-primary">Apply Coupon</button>
+                </div>
+            </div>
+        </form>
+        <div class="card border-secondary mb-5">
+            <div class="card-header bg-secondary border-0">
+                <h4 class="font-weight-semi-bold m-0">Cart Summary</h4>
+            </div>
+            <div class="card-body">
+                @{
+                    var totalAmount = Model.Sum(item =>
+                    {
+                        var sp = _context.SanPhams.FirstOrDefault(s => s.MaSanPham == item.MaSanPham);
+                        var danhSachRom = _context.Roms.Where(r => r.MaSanPham == item.MaSanPham).ToList();
+                        var baseRom = danhSachRom.OrderBy(r => r.Gia).FirstOrDefault();
+                        var selectedRom = _context.Roms.FirstOrDefault(r => r.MaRom == item.ThongSoRom);
+
+                        decimal baseRomGia = baseRom?.Gia.GetValueOrDefault() ?? 0;
+                        decimal selectedRomGia = selectedRom?.Gia.GetValueOrDefault() ?? 0;
+                        decimal donGia = (selectedRomGia - baseRomGia) + sp.DonGiaBanRa.GetValueOrDefault();
+
+                        return donGia * item.SoLuong;
+                    });
+                }
+                <div class="d-flex justify-content-between mb-3 pt-1">
+                    <h6 class="font-weight-medium">Subtotal</h6>
+                    <h6 class="font-weight-medium">
+                        @Convert.ToDouble(totalAmount).ToString("N0") VNĐ
+                    </h6>
+                </div>
+                <div class="d-flex justify-content-between">
+                    <h6 class="font-weight-medium">Shipping</h6>
+                    <h6 class="font-weight-medium">25,000 VNĐ</h6>
+                </div>
+            </div>
+            <div class="card-footer border-secondary bg-transparent">
+                <div class="d-flex justify-content-between mt-2">
+                    <h5 class="font-weight-bold">Total</h5>
+                    <h5 class="font-weight-bold">
+                        @Convert.ToDouble(totalAmount + 25000).ToString("N0") VNĐ
+                    </h5>
+                </div>
+                <a asp-controller="Checkout" asp-action="DetailCheckout" class="btn btn-block btn-primary my-3 py-3">Proceed To Checkout</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        $(document).ready(function () {
+            $('.btn-minus, .btn-plus').click(function (e) {
+                e.preventDefault();
+                var btn = $(this);
+                var action = btn.hasClass('btn-plus') ? 'increase' : 'decrease';
+                var maSanPham = btn.data('masp');
+                var maMau = btn.data('mamau');
+                var maRom = btn.data('marom');
+
+                $.ajax({
+                    url: '@Url.Action("UpdateQuantity", "Cart")',
+                    type: 'POST',
+                    data: {
+                        maSanPham: maSanPham,
+                        maMau: maMau,
+                        maRom: maRom,
+                        action: action
+                    },
+                    success: function (response) {
+                        // Reload trang để cập nhật thông tin
+                        location.reload();
+                    },
+                    error: function (error) {
+                        console.error('Error:', error);
+                    }
+                });
+            });
+        });
+    </script>
+}
+
+<script type="text/javascript">
+    $(document).ready(function () {
+        // Xử lý nút giảm số lượng
+        $('.btn-minus').click(function (e) {
+            var quantityInput = $(this).closest('.quantity').find('.quantity-input');
+            var currentQuantity = parseInt(quantityInput.val());
+
+            if (currentQuantity <= 1) {
+                e.preventDefault(); // Ngăn form submit nếu số lượng <= 1
+                return false;
+            }
+        });
+
+        // Xử lý nút tăng số lượng
+        $('.btn-plus').click(function (e) {
+            var quantityInput = $(this).closest('.quantity').find('.quantity-input');
+            var currentQuantity = parseInt(quantityInput.val());
+
+            // Có thể thêm kiểm tra số lượng tối đa ở đây nếu cần
+            if (currentQuantity >= 10) { // Ví dụ: giới hạn tối đa 10 sản phẩm
+                e.preventDefault();
+                return false;
+            }
+        });
+
+        // Cập nhật tổng tiền
+        function updateTotalPrice() {
+            var subtotal = 0;
+            $('.align-middle').each(function () {
+                var priceText = $(this).find('td:eq(3)').text().replace(/[^0-9]/g, '');
+                var quantity = parseInt($(this).find('.quantity-input').val());
+                if (!isNaN(priceText) && !isNaN(quantity)) {
+                    subtotal += parseInt(priceText) * quantity;
+                }
+            });
+
+            // Cộng thêm phí ship
+            var shipping = 25000;
+            var total = subtotal + shipping;
+
+            // Cập nhật hiển thị
+            $('.subtotal').text(subtotal.toLocaleString('vi-VN') + ' VNĐ');
+            $('.total').text(total.toLocaleString('vi-VN') + ' VNĐ');
+        }
+
+        // Gọi hàm cập nhật tổng tiền khi trang load
+        updateTotalPrice();
+    });
+</script>

@@ -1,0 +1,9 @@
+﻿@{
+    ViewData["Title"] = "Home Page";
+    Layout = "~/Views/Shared/_LayoutPhone.cshtml";
+}
+@using BTLW_BDT.ViewModels
+
+@section SanPhamBanChay {
+    @await Component.InvokeAsync("TrendyProducts", new { itemCount = 8 })
+}

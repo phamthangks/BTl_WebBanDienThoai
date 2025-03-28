@@ -1,0 +1,318 @@
+﻿@using System.Web
+@model IEnumerable<BTLW_BDT.Models.KhachHang>
+@{
+    ViewData["Title"] = "Chat Support";
+    Layout = "~/Areas/Admin/Views/Shared/_LayoutAdmin.cshtml";
+}
+<div class="container-fluid">
+    <div class="row">
+        <!-- Danh sách khách hàng -->
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header">
+                    <h6 class="mb-0">Danh sách khách hàng</h6>
+                </div>
+                <div class="card-body customer-list" style="height: 600px; overflow-y: auto;">
+                    @foreach (var customer in Model)
+                    {
+                        var customerName = HttpUtility.JavaScriptStringEncode(customer.TenKhachHang ?? "");
+                        var username = HttpUtility.JavaScriptStringEncode(customer.TenDangNhapNavigation?.TenDangNhap ?? "");
+                        
+                        <script>
+                            console.log("Customer data:", {
+                                username: '@username',
+                                customerName: '@customerName'
+                            });
+                        </script>
+                        
+                        <div class="customer-item" 
+                             onclick="selectCustomer('@username', '@customerName')"
+                             data-username="@username">
+                            <div class="d-flex align-items-center p-3 border-bottom">
+                                <div class="avatar me-3">
+                                    <img src="~/Images/Customer/default-avatar.jpg" alt="Avatar" class="rounded-circle" width="40">
+                                </div>
+                                <div>
+                                    <h6 class="mb-0">@Html.Raw(customerName)</h6>
+                                    <small class="text-muted last-message">@(customer.LastMessage?.NoiDung ?? "")</small>
+                                </div>
+                            </div>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <!-- Khung chat -->
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <div class="d-flex align-items-center">
+                        <div class="avatar me-3">
+                            <img src="~/Images/Customer/default-avatar.jpg" alt="Avatar" class="rounded-circle" width="40" id="selectedCustomerAvatar">
+                        </div>
+                        <h6 class="mb-0" id="selectedCustomerName">Chọn khách hàng để chat</h6>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div id="messagesList" style="height: 500px; overflow-y: auto; padding: 15px;">
+                    </div>
+                    <div class="chat-input mt-3">
+                        <div class="input-group">
+                            <input type="text" 
+                                   id="messageInput" 
+                                   class="form-control" 
+                                   placeholder="Nhập tin nhắn..." 
+                                   disabled>
+                            <button class="btn btn-primary" 
+                                    type="button" 
+                                    id="sendButton" 
+                                    disabled>
+                                Gửi
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/6.0.1/signalr.min.js"></script>
+    <script>
+        let connection = null;
+        let currentCustomerId = null;
+
+        // Khởi tạo SignalR connection
+        async function initializeConnection() {
+            try {
+                connection = new signalR.HubConnectionBuilder()
+                    .withUrl("/chatHub")
+                    .withAutomaticReconnect()
+                    .build();
+
+                // Xử lý nhận tin nhắn realtime
+                connection.on("ReceiveMessage", function (loaiNguoiGui, message, thoiGian) {
+                    console.log("Received message:", { loaiNguoiGui, message, thoiGian });
+                    appendMessage(loaiNguoiGui, message, thoiGian);
+                });
+
+                // Xử lý load lịch sử tin nhắn
+                connection.on("LoadMessageHistory", function (messages) {
+                    console.log("Loading message history:", messages);
+                    const messagesList = document.getElementById("messagesList");
+                    messagesList.innerHTML = '';
+                    
+                    if (messages && messages.length > 0) {
+                        messages.forEach(msg => {
+                            appendMessage(msg.loaiNguoiGui, msg.noiDung, msg.thoiGian);
+                        });
+                        scrollToBottom();
+                    }
+                });
+
+                await connection.start();
+                console.log("SignalR Connected");
+            } catch (err) {
+                console.error("SignalR Connection Error:", err);
+            }
+        }
+
+        // Xử lý chọn khách hàng
+        async function selectCustomer(tenDangNhap, tenKhachHang) {
+            try {
+                console.log("Selecting customer:", tenDangNhap);
+                currentCustomerId = tenDangNhap;
+
+                // Cập nhật UI
+                document.getElementById("selectedCustomerName").textContent = tenKhachHang;
+                document.getElementById("messageInput").disabled = false;
+                document.getElementById("sendButton").disabled = false;
+
+                // Highlight customer được chọn
+                document.querySelectorAll('.customer-item').forEach(item => {
+                    item.classList.remove('active');
+                });
+                const selectedItem = document.querySelector(`[data-username="${tenDangNhap}"]`);
+                if (selectedItem) {
+                    selectedItem.classList.add('active');
+                }
+
+                // Load tin nhắn
+                if (connection && connection.state === signalR.HubConnectionState.Connected) {
+                    console.log("Loading messages for:", tenDangNhap);
+                    await connection.invoke("LoadMessages", tenDangNhap);
+                } else {
+                    console.error("SignalR not connected");
+                }
+            } catch (err) {
+                console.error("Error selecting customer:", err);
+            }
+        }
+
+        // Xử lý gửi tin nhắn
+        async function sendMessage() {
+            const messageInput = document.getElementById("messageInput");
+            const message = messageInput.value.trim();
+            
+            if (message && currentCustomerId && connection) {
+                try {
+                    console.log("Sending message:", { message, currentCustomerId });
+                    await connection.invoke("SendMessageAsAdmin", message, currentCustomerId);
+                    messageInput.value = '';
+                    messageInput.focus();
+                } catch (err) {
+                    console.error("Error sending message:", err);
+                }
+            }
+        }
+
+        // Hiển thị tin nhắn
+        function appendMessage(loaiNguoiGui, message, thoiGian) {
+            const messagesList = document.getElementById("messagesList");
+            const messageDiv = document.createElement("div");
+            messageDiv.className = `message ${loaiNguoiGui === 'admin' ? 'sent' : 'received'}`;
+            
+            const time = new Date(thoiGian).toLocaleTimeString();
+            messageDiv.innerHTML = `
+                <div class="message-content">${message}</div>
+                <div class="message-time">${time}</div>
+            `;
+            
+            messagesList.appendChild(messageDiv);
+            scrollToBottom();
+        }
+
+        // Cuộn xuống tin nhắn cuối
+        function scrollToBottom() {
+            const messagesList = document.getElementById("messagesList");
+            messagesList.scrollTop = messagesList.scrollHeight;
+        }
+
+        // Khởi tạo khi trang load
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log("DOM loaded, initializing...");
+            
+            const sendButton = document.getElementById("sendButton");
+            const messageInput = document.getElementById("messageInput");
+            
+            if (sendButton) {
+                sendButton.addEventListener("click", function(e) {
+                    e.preventDefault();
+                    sendMessage();
+                });
+            }
+            
+            if (messageInput) {
+                messageInput.addEventListener("keypress", function(e) {
+                    if (e.key === "Enter") {
+                        e.preventDefault();
+                        sendMessage();
+                    }
+                });
+            }
+
+            initializeConnection();
+        });
+    </script>
+
+    <style>
+        .customer-item {
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+
+        .customer-item:hover {
+            background-color: #f8f9fa;
+        }
+
+        .customer-item.active {
+            background-color: #e9ecef;
+        }
+
+        .message {
+            max-width: 70%;
+            margin: 8px;
+            padding: 10px;
+            border-radius: 10px;
+        }
+
+        .message.received {
+            align-self: flex-start;
+            background-color: #f0f2f5;
+        }
+
+        .message.sent {
+            align-self: flex-end;
+            background-color: #0084ff;
+            color: white;
+            margin-left: auto;
+        }
+
+        .message-time {
+            font-size: 0.75rem;
+            margin-top: 5px;
+            opacity: 0.7;
+        }
+
+        #messagesList {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .chat-input {
+            position: sticky;
+            bottom: 0;
+            background-color: white;
+            padding: 15px;
+            border-top: 1px solid #e9ecef;
+        }
+
+        .input-group {
+            display: flex;
+            gap: 10px;
+        }
+
+        #messageInput {
+            border-radius: 20px;
+            padding: 10px 20px;
+            border: 1px solid #e9ecef;
+            transition: all 0.3s ease;
+        }
+
+        #messageInput:focus {
+            outline: none;
+            border-color: #0d6efd;
+            box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.25);
+        }
+
+        #sendButton {
+            border-radius: 20px;
+            padding: 8px 25px;
+            background-color: #0d6efd;
+            border: none;
+            transition: all 0.3s ease;
+        }
+
+        #sendButton:hover {
+            background-color: #0b5ed7;
+            transform: translateY(-1px);
+        }
+
+        #sendButton:disabled {
+            background-color: #6c757d;
+            cursor: not-allowed;
+        }
+
+        /* Điều chỉnh khoảng cách giữa các tin nhắn */
+        #messagesList {
+            padding-bottom: 70px; /* Tạo khoảng cách để không bị che bởi thanh input */
+        }
+
+        /* Làm mượt hiệu ứng cuộn */
+        #messagesList {
+            scroll-behavior: smooth;
+        }
+    </style>
+}

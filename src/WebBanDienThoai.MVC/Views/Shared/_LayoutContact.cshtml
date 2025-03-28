@@ -1,0 +1,106 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <title>IT1 Mobile Shop</title>
+    <meta content="width=device-width, initial-scale=1.0" name="viewport">
+    <meta content="Free HTML Templates" name="keywords">
+    <meta content="Free HTML Templates" name="description">
+
+    <!-- Favicon -->
+    <link type="image/png" href="..\HomeImages\logo_mobile.png" rel="icon">
+
+    <!-- Google Web Fonts -->
+    <link rel="preconnect" href="https://fonts.gstatic.com">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@100;200;300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+
+    <!-- Font Awesome -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.10.0/css/all.min.css" rel="stylesheet">
+
+    <!-- Libraries Stylesheet -->
+    <link href="../assets/lib/owlcarousel/assets/owl.carousel.min.css" rel="stylesheet">
+
+    <!-- Customized Bootstrap Stylesheet -->
+    <link href="../assets/css/style.css" rel="stylesheet">
+    <link href="../css/site.css" rel="stylesheet">
+
+    <!-- SignalR -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/6.0.1/signalr.min.js"></script>
+
+    <!-- Google Maps API -->
+    <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBqIm1BH4Z2iXUobBw9w98dpCIIyRLP-QE&libraries=places,geometry"></script>
+
+    <!-- Đặt các script này trong thẻ head hoặc cuối body -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/js/bootstrap.bundle.min.js"></script>
+</head>
+
+<body>
+    <!-- Header Start -->
+    <partial name="_HeaderPartial" />
+    <!-- Header End -->
+
+    <!-- Page Header Start -->
+    <div class="container-fluid bg-secondary mb-5">
+        <div class="d-flex flex-column align-items-center justify-content-center" style="min-height: 300px">
+            <h1 class="font-weight-semi-bold text-uppercase mb-3">HỖ TRỢ KHÁCH HÀNG</h1>
+            <div class="d-inline-flex">
+                <p class="m-0"><a href="">Home</a></p>
+                <p class="m-0 px-2">-</p>
+                <p class="m-0">Contact</p>
+            </div>
+        </div>
+    </div>
+    <!-- Page Header End -->
+
+    <!-- Contact Start -->
+    <div class="container-fluid pt-5">
+        <div class="row px-xl-5">
+            <div class="col-lg-7 mb-5">
+                <div class="contact-form">
+                    @RenderBody()
+                </div>
+            </div>
+            <div class="col-lg-5 mb-5">
+                <h5 class="font-weight-semi-bold mb-3">Phương thức liên hệ</h5>
+                <p>Hãy liên hệ ngay với chúng tôi khi gặp bất kỳ vấn đề gì về sản phẩm, dịch vụ. 
+                    Chúng tôi sẵn sàng lắng nghe và đưa ra phản hồi và hỗ trợ nhanh có thể. Xin chân thành cảm ơn!</p>
+                <div class="d-flex flex-column mb-3">
+                    <h5 class="font-weight-semi-bold mb-3">Online</h5>
+                    <p class="mb-2"><i class="fa fa-map-marker-alt text-primary mr-3"></i>IT ONE MOBILE SHOP</p>
+                    <p class="mb-2"><i class="fa fa-envelope text-primary mr-3"></i>https://www.facebook.com/profile.php?id=100088408926675</p>
+                    <p class="mb-2"><i class="fa fa-envelope text-primary mr-3"></i>itonemoblieshop@gmail.com</p>
+                    <p class="mb-2"><i class="fa fa-phone-alt text-primary mr-3"></i>+84 976 872 7926</p>
+                </div>
+                <div class="d-flex flex-column">
+                    <h5 class="font-weight-semi-bold mb-3">Offline</h5>
+                    <p class="mb-2"><i class="fa fa-map-marker-alt text-primary mr-3"></i>Lớp CNTT1 K63</p>
+                    <p class="mb-2"><i class="fa fa-map-marker-alt text-primary mr-3"></i>Khoa Công Nghệ Thông Tin, Trường Đại Học Giao Thông Vận Tải</p>
+                    <p class="mb-0"><i class="fa fa-map-marker-alt text-primary mr-3"></i>Số 3, Đường Cầu Giấy, Láng Thượng, Cầu Giấy, Hà Nội</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- Contact End -->
+
+    <!-- Footer Start -->
+    <partial name="_FooterPartial" />
+    <!-- Footer End -->
+
+    <!-- JavaScript Libraries -->
+    <script src="https://code.jquery.com/jquery-3.4.1.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/js/bootstrap.bundle.min.js"></script>
+    <script src="../lib/easing/easing.min.js"></script>
+    <script src="../lib/owlcarousel/owl.carousel.min.js"></script>
+
+    <!-- Contact Javascript File -->
+    <script src="../assets/mail/jqBootstrapValidation.min.js"></script>
+    <script src="../assets/mail/contact.js"></script>
+
+    <!-- Template Javascript -->
+    <script src="../assets/js/main.js"></script>
+
+    @RenderSection("Scripts", required: false)
+</body>
+</html>

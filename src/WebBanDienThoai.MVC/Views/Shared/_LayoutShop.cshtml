@@ -1,0 +1,133 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <title>IT1 Mobile Shop</title>
+    <meta content="width=device-width, initial-scale=1.0" name="viewport">
+    <meta content="Free HTML Templates" name="keywords">
+    <meta content="Free HTML Templates" name="description">
+
+    <!-- Favicon -->
+    <link type="image/png" href="..\HomeImages\logo_mobile.png" rel="icon">
+
+    <!-- Google Web Fonts -->
+    <link rel="preconnect" href="https://fonts.gstatic.com">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@100;200;300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+
+    <!-- Font Awesome -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.10.0/css/all.min.css" rel="stylesheet">
+
+    <!-- Libraries Stylesheet -->
+    <link href="../assets/lib/owlcarousel/assets/owl.carousel.min.css" rel="stylesheet">
+
+    <!-- Customized Bootstrap Stylesheet -->
+    <link href="../assets/css/style.css" rel="stylesheet">
+    <link href="../css/site.css" rel="stylesheet">
+
+    <!-- Google Maps API -->
+    <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBqIm1BH4Z2iXUobBw9w98dpCIIyRLP-QE&libraries=places,geometry"></script>
+</head>
+
+<body>
+    <!-- Header Start -->
+    <partial name="_HeaderPartial" />
+    <!-- Header End -->
+
+    <!-- Page Header Start -->
+    <div class="container-fluid bg-secondary mb-5">
+        <div class="d-flex flex-column align-items-center justify-content-center" style="min-height: 300px">
+            <h1 class="font-weight-semi-bold text-uppercase mb-3">Our Shop</h1>
+            <div class="d-inline-flex">
+                <p class="m-0"><a href="">Home</a></p>
+                <p class="m-0 px-2">-</p>
+                <p class="m-0">Shop</p>
+            </div>
+        </div>
+    </div>
+    <!-- Page Header End -->
+
+    <!-- Shop Start -->
+    <div class="container-fluid pt-5">
+        <div class="row px-xl-5">
+            <!-- Shop Sidebar Start -->
+            <div class="col-lg-3 col-md-12">
+                <!-- Price Start -->
+                <div class="border-bottom mb-4 pb-4">
+                    <h5 class="font-weight-semi-bold mb-4">Giá tiền</h5>
+                    <form>
+                        <div class="form-group">
+                            <label for="minPrice">Giá nhỏ nhất</label>
+                            <input type="number" class="form-control" id="minPrice" step="1000000" min="0" placeholder="Nhập giá nhỏ nhất">
+                        </div>
+                        <div class="form-group">
+                            <label for="maxPrice">Giá lớn nhất</label>
+                            <input type="number" class="form-control" id="maxPrice" step="1000000" min="0" placeholder="Nhập giá lớn nhất">
+                        </div>
+                    </form>
+                </div>
+                <!-- Price End -->
+                <!-- RAM Start -->
+                <div class="border-bottom mb-4 pb-4">
+                    <h5 class="font-weight-semi-bold mb-4">Dung lượng RAM</h5>
+                    <form id="ramFilterForm">
+                        <!-- Các tùy chọn RAM sẽ được thêm vào đây bằng JavaScript -->
+                    </form>
+                </div>
+                <!-- RAM End -->
+            </div>
+            <!-- Shop Sidebar End -->
+            <!-- Shop Product Start -->
+            <div class="col-lg-9 col-md-12">
+                <div class="row pb-3">
+                    @RenderBody()
+                </div>
+            </div>
+            <!-- Shop Product End -->
+        </div>
+    </div>
+    <!-- Shop End -->
+
+    <!-- Footer Start -->
+    <partial name="_FooterPartial" />
+    <!-- Footer End -->
+
+    <!-- JavaScript Libraries -->
+    <script src="https://code.jquery.com/jquery-3.4.1.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/js/bootstrap.bundle.min.js"></script>
+    <script src="../assets/lib/easing/easing.min.js"></script>
+    <script src="../assets/lib/owlcarousel/owl.carousel.min.js"></script>
+
+    <!-- Contact Javascript File -->
+    <script src="../assets/mail/jqBootstrapValidation.min.js"></script>
+    <script src="../assets/mail/contact.js"></script>
+
+    <!-- Template Javascript -->
+    <script src="../assets/js/main.js"></script>
+     
+    @RenderSection("Scripts", required: false)
+
+    <script>
+        function updateCartCount() {
+            $.ajax({
+                url: '/Home/GetCartQuantity',
+                method: 'GET',
+                success: function (quantity) {
+                    $('.badge').text(quantity);
+                },
+                error: function (error) {
+                    console.error('Error updating cart count:', error);
+                }
+            });
+        }
+
+        // Cập nhật số lượng khi trang được tải
+        $(document).ready(function () {
+            updateCartCount();
+        });
+    </script>
+</body>
+
+</html>
+
+

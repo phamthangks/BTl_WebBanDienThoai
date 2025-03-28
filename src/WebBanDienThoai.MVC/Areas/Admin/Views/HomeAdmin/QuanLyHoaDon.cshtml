@@ -1,0 +1,89 @@
+﻿@using BTLW_BDT.Models;
+@using X.PagedList.Mvc.Core;
+@model X.PagedList.IPagedList<dynamic>
+
+@{
+    ViewData["Title"] = "Danh Mục Hóa Đơn";
+    Layout = "~/Areas/Admin/Views/Shared/_LayoutAdmin.cshtml";
+}
+
+<h2>Quản Lý Hóa Đơn</h2>
+
+<!-- Form tìm kiếm -->
+<form method="get" asp-action="QuanLyHoaDon">
+    <div class="input-group mb-3">
+        <input style="padding:0" type="text" class="form-control" placeholder="Tìm kiếm tất cả thông tin..." name="searchQuery" value="@ViewData["searchQuery"]" />
+        <button style="margin:0" class="btn btn-outline-secondary" type="submit">Tìm kiếm</button>
+    </div>
+</form>
+
+<!-- Bảng danh sách hóa đơn -->
+<table class="table table-bordered">
+    <thead>
+        <tr class="table-warning">
+            <th style="text-align:center; width:80px;">STT</th>
+            <th style="text-align:center; width:110px;">Mã hóa đơn</th>
+            <th style="text-align:center; width:190px;">Chi tiết hóa đơn</th>
+            <th style="text-align:center; width:140px;">Thời gian lập</th>
+            <th style="text-align:center; width:110px;">Khuyến mại</th>
+            <th style="text-align:center; width:120px;">Phí giao hàng</th>
+            <th style="text-align:center; width:110px;">Tổng tiền</th>
+            <th style="text-align:center; width:150px;">Phương thức thanh toán</th>
+            <th style="text-align:center; width:120px;">Khách hàng</th>
+            
+        </tr>
+    </thead>
+    <tbody>
+        @{
+            int i = 0;
+            string cls = "table-success";
+        }
+        @foreach (var item in Model)
+        {
+            i++;
+            cls = i % 2 == 0 ? "table-primary" : "table-success";
+            <tr class="@cls">
+                <td  style="text-align:center">@i</td>
+                <td  style="text-align:center">@item.MaHDB</td>
+                <td  style="text-align:center">
+                    @foreach (var product in item.ProductDetails)
+                    {
+                        <div>
+                            MaSp: @product.MaSp - SL: @product.SL 
+                        </div>
+                    }
+                </td>
+                <td  style="text-align:center">@item.Time</td>
+                <td  style="text-align:center">@item.KM</td>
+                <td  style="text-align:center">@item.PhiGH</td>
+                <td  style="text-align:center">@item.TT</td>
+                <td  style="text-align:center">@item.PTTT</td>
+                <td  style="text-align:center">@item.TenKH <br /> @item.SDT <br /> @item.DC</td>
+              
+            </tr>
+        }
+    </tbody>
+</table>
+
+@Html.PagedListPager(Model, page => Url.Action("QuanLyHoaDon", new { page = page }),
+        new PagedListRenderOptions
+    {
+        LiElementClasses = new List<String> { "page-item" },
+        PageClasses = new List<String> { "page-link" }
+    })
+
+
+<style>
+    .table {
+        table-layout: fixed;
+        width: 100%;
+    }
+
+        .table th,
+        .table td {
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: normal;
+            word-wrap: break-word;
+        }
+</style>

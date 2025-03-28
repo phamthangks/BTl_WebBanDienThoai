@@ -1,0 +1,10 @@
+@model List<BTLW_BDT.Models.AnhSanPham>
+
+@foreach (var image in Model)
+{
+    <div class="carousel-item @(image == Model.First() ? "active" : "")">
+        <img class="w-100 h-100" 
+             src="@Url.Content($"../PhoneImages/Images/{image.TenFile}")" 
+             alt="@image.TenFile">
+    </div>
+}

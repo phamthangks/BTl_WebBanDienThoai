@@ -1,0 +1,9 @@
+﻿@{
+    ViewData["Title"] = "ProductDetail";
+    Layout = "~/Views/Shared/_LayoutDetail.cshtml";
+}
+@model BTLW_BDT.ViewModels.ProductDetailViewModel
+
+@await Html.PartialAsync("PartialSanPham", Model)
+
+@await Component.InvokeAsync("TrendyProducts", new { itemCount = 4 })

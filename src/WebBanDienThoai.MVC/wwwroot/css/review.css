@@ -1,0 +1,36 @@
+/* Thêm vào cuối file */
+.review-empty {
+    width: 100%;
+    padding: 20px;
+    margin: 20px 0;
+}
+
+.review-empty .alert {
+    width: 100%;
+    margin-bottom: 10px;
+}
+
+.alert-info {
+    background-color: #e1f5fe;
+    border-color: #b3e5fc;
+    color: #0288d1;
+    padding: 15px;
+    border-radius: 4px;
+}
+
+.alert-warning {
+    background-color: #fff3e0;
+    border-color: #ffe0b2;
+    color: #f57c00;
+    padding: 15px;
+    border-radius: 4px;
+}
+
+.alert i {
+    margin-right: 8px;
+}
+
+.alert a {
+    color: inherit;
+    text-decoration: underline;
+}

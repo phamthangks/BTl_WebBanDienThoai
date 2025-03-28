@@ -1,0 +1,183 @@
+@model IPagedList<BTLW_BDT.Models.HoaDonBan>
+@using X.PagedList
+@using X.PagedList.Mvc.Core
+
+
+@{
+    ViewData["Title"] = "Order History";
+    ViewData["Page"] = "Order History";
+    Layout = "~/Views/Shared/_LayoutCart.cshtml";
+}
+
+<div class="container mt-4">
+    <h2 class="mb-4 text-center">Lịch Sử Đơn Hàng</h2>
+
+    @if (!Model.Any())
+    {
+        <div class="alert alert-info text-center">
+            <h4>Bạn chưa có đơn hàng nào</h4>
+            <p class="mb-0">Hãy khám phá các sản phẩm của chúng tôi và đặt hàng ngay!</p>
+            <a href="@Url.Action("Shop", "Home")" class="btn btn-primary mt-3">Đi đến cửa hàng</a>
+        </div>
+    }
+    else
+    {
+        @foreach (var order in Model)
+        {
+            <div class="card mb-4 order-card">
+                <div class="card-header bg-white">
+                    <div class="row align-items-center">
+                        <div class="col-md-3">
+                            <span class="text-muted">Mã đơn hàng:</span>
+                            <strong>@order.MaHoaDon</strong>
+                        </div>
+                        <div class="col-md-3">
+                            <span class="text-muted">Ngày đặt:</span>
+                            <strong>@order.ThoiGianLap.ToString("dd/MM/yyyy HH:mm")</strong>
+                        </div>
+                        <div class="col-md-3">
+                            <span class="text-muted">Trạng thái thanh toán:</span>
+                            <span>
+                                @(order.TrangThai ?? "Chưa xác định")
+                            </span>
+                        </div>
+                        <div class="col-md-3">
+                            <span class="text-muted">Trạng thái giao hàng:</span>
+                            <span>
+                                @(order.TrangThaiGiaoHang == true ? "Đã giao hàng" : "Chưa giao hàng")
+                            </span>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <p><strong>Địa chỉ giao hàng:</strong><br />
+                                @(order.DiaChiGiaoHang ?? "Không có thông tin")
+                            </p>
+                            @if (!string.IsNullOrEmpty(order.GhiChuHd))
+                            {
+                                <p><strong>Ghi chú:</strong><br />@order.GhiChuHd</p>
+                            }
+                        </div>
+                        <div class="col-md-6">
+                            <p><strong>Phương thức thanh toán:</strong><br />
+                                @(order.PhuongThucThanhToan ?? "Không có thông tin")
+                            </p>
+                        </div>
+                    </div>
+
+                    <div class="table-responsive">
+                        <table class="table table-sm">
+                            <thead>
+                                <tr>
+                                    <th>Sản phẩm</th>
+                                    <th class="text-center">Số lượng</th>
+                                    <th class="text-right">Đơn giá</th>
+                                    <th class="text-right">Thành tiền</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var item in order.ChiTietHoaDonBans)
+                                {
+                                    <tr>
+                                        <td>
+                                            <a href="@Url.Action("ProductDetail", "Home", new { maSp = item.MaSanPham })" class="text-dark">
+                                                @(item.MaSanPhamNavigation?.TenSanPham ?? "Sản phẩm không còn tồn tại")
+                                            </a>
+                                        </td>
+                                        <td class="text-center">@item.SoLuongBan</td>
+                                        <td class="text-right">@(item.DonGiaCuoi?.ToString("#,##0") ?? "0") VNĐ</td>
+                                        <td class="text-right">@((item.DonGiaCuoi * item.SoLuongBan)?.ToString("#,##0") ?? "0") VNĐ</td>
+                                    </tr>
+                                }
+                            </tbody>
+                            <tfoot>
+                                <tr>
+                                    <td colspan="3" class="text-right"><strong>Tạm tính:</strong></td>
+                                    <td class="text-right">@(order.TongTien?.ToString("#,##0") ?? "0") VNĐ</td>
+                                </tr>
+                                <tr>
+                                    <td colspan="3" class="text-right"><strong>Phí vận chuyển:</strong></td>
+                                    <td class="text-right">@(order.PhiGiaoHang?.ToString("#,##0") ?? "0") VNĐ</td>
+                                </tr>
+                                <tr>
+                                    <td colspan="3" class="text-right"><strong>Tổng cộng:</strong></td>
+                                    <td class="text-right"><strong>@((order.TongTien + order.PhiGiaoHang)?.ToString("#,##0") ?? "0") VNĐ</strong></td>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        }
+
+        <div class="d-flex justify-content-center">
+            @Html.PagedListPager(Model, page => Url.Action("OrderHistory", new { page }),
+                new PagedListRenderOptions
+                {
+                    LiElementClasses = new string[] { "page-item" },
+                    PageClasses = new string[] { "page-link" }
+                })
+        </div>
+    }
+</div>
+
+<style>
+    .order-card {
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        transition: transform 0.2s;
+    }
+
+    .order-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+    }
+
+    .badge {
+        padding: 8px 12px;
+        border-radius: 4px;
+        font-weight: 500;
+    }
+
+    .badge-success {
+        background-color: #28a745;
+        color: white;
+    }
+
+    .badge-warning {
+        background-color: #ffc107;
+        color: #000;
+    }
+
+    .badge-secondary {
+        background-color: #6c757d;
+        color: white;
+    }
+
+    .table th {
+        border-top: none;
+        border-bottom: 2px solid #dee2e6;
+    }
+
+    .pagination {
+        margin-top: 2rem;
+    }
+
+    .page-link {
+        color: #3D464D;
+        border: 1px solid #3D464D;
+    }
+
+    .page-link:hover {
+        color: #fff;
+        background-color: #3D464D;
+        border-color: #3D464D;
+    }
+
+    .page-item.active .page-link {
+        background-color: #3D464D;
+        border-color: #3D464D;
+    }
+</style> 

@@ -1,0 +1,271 @@
+﻿﻿@{
+    ViewData["Title"] = "Shop";
+    Layout = "~/Views/Shared/_LayoutShop.cshtml";
+}
+<div id="productContainer" class="row pb-3">
+    <!-- Sản phẩm sẽ được thêm vào đây bằng JavaScript -->
+</div>
+
+<div class="col-12 pb-1">
+    <nav aria-label="Page navigation">
+        <ul class="pagination justify-content-center mb-3">
+            <!-- Phân trang sẽ được thêm vào đây bằng JavaScript -->
+        </ul>
+    </nav>
+</div>
+
+@section Scripts {
+    <script>
+        // Đặt các biến và hàm ở phạm vi window
+        var currentPage = 1;
+        var selectedBrand = '';
+
+        $(document).ready(function () {
+            console.log('Shop page loaded');
+            const urlParams = new URLSearchParams(window.location.search);
+            selectedBrand = urlParams.get('brand') || '';
+            const searchQuery = urlParams.get('searchQuery') || '';
+
+            console.log('URL Parameters:', {
+                brand: selectedBrand,
+                searchQuery: searchQuery
+            });
+
+            // Nếu có tham số tìm kiếm, đặt giá trị vào ô tìm kiếm
+            if (searchQuery) {
+                $('#searchInputHeader').val(searchQuery);
+            }
+
+            // Tải sản phẩm ban đầu
+            loadProducts();
+            // Tải các hãng
+            loadBrands();
+
+            $(window).on('pageshow', function() {
+                $('#minPrice').val('');
+                $('#maxPrice').val('');
+            });
+
+            // Add RAM filter loading
+            loadRamOptions();
+
+            // Add price filter handlers
+            $('#minPrice, #maxPrice').on('input', function() {
+                currentPage = 1;
+                loadProducts();
+            });
+
+            $('#maxPrice').on('input', function () {
+                var minPrice = parseInt($('#minPrice').val()) || 0;
+                var maxPrice = parseInt($(this).val()) || 0;
+
+                if (maxPrice < minPrice) {
+                    $(this).val(minPrice);
+                }
+                currentPage = 1;
+                loadProducts();
+            });
+
+            // Add RAM filter handler
+            $(document).on('change', '.ram-filter', function() {
+                currentPage = 1;
+                loadProducts();
+            });
+        });
+
+        function loadBrands() {
+            $.ajax({
+                url: '/api/phone/getbrands',
+                method: 'GET',
+                success: function (data) {
+                    var brandNav = $('#brandNav');
+                    brandNav.empty();
+                    
+                    // Thêm tùy chọn "All Brand" đầu tiên
+                    brandNav.append(`<a href="#" class="nav-item nav-link brand-filter" data-brand="">All Brands</a>`);
+                    
+                    // Thêm các hãng khác
+                    data.forEach(function (brand) {
+                        brandNav.append(`
+                            <a href="#" class="nav-item nav-link brand-filter" data-brand="${brand.maHang}">
+                                ${brand.tenHang}
+                            </a>
+                        `);
+                    });
+
+                    // Highlight brand được chọn
+                    var currentBrand = selectedBrand || '';
+                    brandNav.find(`[data-brand="${currentBrand}"]`).addClass('active');
+
+                    // Xử lý sự kiện click cho brand filter
+                    $('.brand-filter').on('click', function (e) {
+                        e.preventDefault();
+                        $('.brand-filter').removeClass('active');
+                        $(this).addClass('active');
+                        selectedBrand = $(this).data('brand');
+                        currentPage = 1;
+                        loadProducts();
+                    });
+                }
+            });
+        }
+
+        function loadProducts() {
+            console.log('loadProducts called');
+            var searchQuery = $('#searchInputHeader').val() || '';
+            var minPrice = $('#minPrice').val() || '';
+            var maxPrice = $('#maxPrice').val() || '';
+            var selectedRams = $('.ram-filter:checked').map(function() {
+                return this.value;
+            }).get().join(',');
+
+            console.log('Search Parameters:', {
+                searchQuery: searchQuery,
+                minPrice: minPrice,
+                maxPrice: maxPrice,
+                brand: selectedBrand,
+                rams: selectedRams,
+                page: currentPage
+            });
+
+            $.ajax({
+                url: '/api/phone/getfilteredphones',
+                method: 'GET',
+                data: {
+                    searchQuery: searchQuery,
+                    minPrice: minPrice,
+                    maxPrice: maxPrice,
+                    brand: selectedBrand,
+                    rams: selectedRams,
+                    page: currentPage
+                },
+                success: function (data) {
+                    console.log('API Response:', data);
+                    if (data && data.products && data.products.length > 0) {
+                        updateProductList(data.products);
+                        updatePagination(data.totalPages, data.currentPage);
+                    } else {
+                        $('#productContainer').html('<p class="text-center w-100">Không có sản phẩm phù hợp.</p>');
+                        $('.pagination').empty();
+                    }
+                },
+                error: function (error) {
+                    console.error('API Error:', error);
+                    $('#productContainer').html('<p class="text-center w-100">Đã xảy ra lỗi khi tải sản phẩm.</p>');
+                    $('.pagination').empty();
+                }
+            });
+        }
+
+        function updateProductList(products) {
+            var productContainer = $('#productContainer');
+            productContainer.empty();
+            products.forEach(function (product) {
+                productContainer.append(createProductHtml(product));
+            });
+        }
+
+        function createProductHtml(product) {
+            return `
+                <div class="col-lg-4 col-md-6 col-sm-12 pb-1">
+                    <div class="card product-item border-0 mb-4">
+                        <div class="card-header product-img position-relative overflow-hidden bg-transparent border p-0">
+                            <img class="img-fluid w-100" src="/PhoneImages/Images/${product.anhDaiDien}" alt="${product.tenSanPham}">
+                        </div>
+                        <div class="card-body border-left border-right text-center p-0 pt-4 pb-3">
+                            <h6 class="text-truncate mb-3">${product.tenSanPham}</h6>
+                            <div class="d-flex justify-content-center">
+                                <h6>${product.donGiaBanRa.toLocaleString('vi-VN')} VNĐ </h6>
+                                <h6 class="text-muted ml-2">
+                                    <del>${(product.donGiaBanGoc * 1.2).toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g, ".")} VNĐ</del>
+                                </h6>
+                            </div>
+                        </div>
+                        <div class="card-footer d-flex justify-content-between bg-light border">
+                            <a href="/Home/ProductDetail?maSp=${product.maSanPham}" class="btn btn-sm text-dark p-0">
+                                <i class="fas fa-eye text-primary mr-1"></i>View Detail
+                            </a>
+                             <a href="/Cart/AddToCart/${product.maSanPham}" class="btn btn-sm text-dark p-0">
+                                <i class="fas fa-shopping-cart text-primary mr-1"></i>Add to Cart
+                             </a>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+        // <a asp-controller="Cart" asp-action="AddToCart" asp-route-id="item.MaSanPham" class="btn btn-sm text-dark p-0">
+        //     <i class="fas fa-shopping-cart text-primary mr-1"></i>Add To Cart
+        // </a>
+        function updatePagination(totalPages, currentPage) {
+            var paginationContainer = $('.pagination');
+            paginationContainer.empty();
+
+            for (var i = 1; i <= totalPages; i++) {
+                var pageItem = $('<li>').addClass('page-item');
+                if (i === currentPage) {
+                    pageItem.addClass('active');
+                }
+                var pageLink = $('<a>')
+                    .addClass('page-link')
+                    .attr('href', '#')
+                    .data('page', i)
+                    .text(i);
+                pageItem.append(pageLink);
+                paginationContainer.append(pageItem);
+            }
+
+            // Xử lý sự kiện click cho phân trang
+            $('.page-link').on('click', function(e) {
+                e.preventDefault();
+                currentPage = $(this).data('page');
+                loadProducts();
+            });
+        }
+
+        // Xử lý sự kiện tìm kiếm
+        $(document).on('click', '#searchButtonHeader', function(e) {
+            e.preventDefault();
+            currentPage = 1;
+            loadProducts();
+        });
+
+        $(document).on('keypress', '#searchInputHeader', function(e) {
+            if (e.which === 13) {
+                e.preventDefault();
+                currentPage = 1;
+                loadProducts();
+            }
+        });
+
+        // Add this new function for RAM options
+        function loadRamOptions() {
+            $.ajax({
+                url: '/api/Phone/GetRamOptions',
+                method: 'GET',
+                success: function(data) {
+                    var ramForm = $('#ramFilterForm');
+                    ramForm.empty();
+                    data.forEach(function(ram) {
+                        var checkbox = `
+                            <div class="custom-control custom-checkbox d-flex align-items-center justify-content-between mb-3">
+                                <input type="checkbox" class="custom-control-input ram-filter" id="ram-${ram}" value="${ram}">
+                                <label class="custom-control-label" for="ram-${ram}">${ram} GB</label>
+                            </div>
+                        `;
+                        ramForm.append(checkbox);
+                    });
+                },
+                error: function(error) {
+                    console.error('Error fetching RAM options:', error);
+                }
+            });
+        }
+    </script>
+}
+
+<style>
+.brand-filter.active {
+    background-color: #f8f9fa;
+    font-weight: bold;
+}
+</style>

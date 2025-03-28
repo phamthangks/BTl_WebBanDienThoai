@@ -1,0 +1,259 @@
+﻿@model BTLW_BDT.ViewModels.RegisterVM
+@{
+    ViewData["Title"] = "Register";
+    Layout = null;
+}
+
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <link rel="apple-touch-icon" sizes="76x76" href="../LayoutAdmin/assets/img/apple-icon.png">
+    <link rel="icon" type="image/png" href="../LayoutAdmin/assets/img/favicon.png">
+    <title>
+        Material Dashboard 2 by Creative Tim
+    </title>
+    <!--     Fonts and icons     -->
+    <link rel="stylesheet" type="text/css" href="https://fonts.googleapis.com/css?family=Roboto:300,400,500,700,900|Roboto+Slab:400,700" />
+    <!-- Nucleo Icons -->
+    <link href="../LayoutAdmin/assets/css/nucleo-icons.css" rel="stylesheet" />
+    <link href="../LayoutAdmin/assets/css/nucleo-svg.css" rel="stylesheet" />
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+
+    <!-- Font Awesome Icons -->
+    <script src="https://kit.fontawesome.com/42d5adcbca.js" crossorigin="anonymous"></script>
+    <!-- Material Icons -->
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
+    <!-- CSS Files -->
+    <link id="pagestyle" href="../LayoutAdmin/assets/css/material-dashboard.css?v=3.1.0" rel="stylesheet" />
+    <!-- Nepcha Analytics -->
+    <script defer data-site="YOUR_DOMAIN_HERE" src="https://api.nepcha.com/js/nepcha-analytics.js"></script>
+    <!-- Add Google Maps JavaScript API -->
+    <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBqIm1BH4Z2iXUobBw9w98dpCIIyRLP-QE&libraries=places,geometry"></script>
+    <style>
+        /* Điều chỉnh kích thước map container */
+        .map-container {
+            position: relative;
+            width: 100%;
+            height: 400px;
+            margin: 15px 0;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        /* Style cho map chính */
+        #map {
+            height: 100%;
+            width: 100%;
+        }
+
+        /* Style cho search input */
+        #searchInput {
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            border: 1px solid #ddd;
+            padding: 10px;
+            border-radius: 4px;
+            width: 100%;
+            margin-bottom: 10px;
+        }
+
+        /* Style cho controls của Google Maps */
+        .gm-style-mtc {
+            margin-top: 10px !important;
+        }
+
+    </style>
+</head>
+
+<body class="">
+    <div class="container position-sticky z-index-sticky top-0">
+    </div>
+    <main class="main-content mt-0">
+        <section>
+            <div class="page-header min-vh-100">
+                <div class="container">
+                    <div class="row">
+                        <div class="col-6 d-lg-flex d-none h-100 my-auto pe-0 position-absolute top-0 start-0 text-center justify-content-center flex-column">
+                            <div class="position-relative bg-gradient-primary h-100 m-3 px-7 border-radius-lg d-flex flex-column justify-content-center" style="background-image: url('../LayoutAdmin/assets/img/illustrations/illustration-signup.jpg'); background-size: cover;">
+                            </div>
+                        </div>
+                        <div class="col-xl-4 col-lg-5 col-md-7 d-flex flex-column ms-auto me-auto ms-lg-auto me-lg-5">
+                            <div class="card card-plain">
+                                <div class="card-header">
+                                    <h4 class="font-weight-bolder">Sign Up</h4>
+                                </div>
+                                <div class="card-body">
+                                    <form asp-action="Register" enctype="multipart/form-data">
+                                        <div class="row">
+                                            <div class="row">
+                                                <div class="form-item">
+                                                    <label asp-for="@Model.TaiKhoan" class="form-label my-3"></label><sup>*</sup>
+                                                    <input asp-for="@Model.TaiKhoan" class="form-control">
+                                                    <span asp-validation-for="@Model.TaiKhoan" class="text-danger"></span>
+                                                </div>
+                                                <div class="form-item">
+                                                        <label asp-for="@Model.MatKhau" class="form-label my-3"></label><sup>*</sup>
+                                                    <input asp-for="@Model.MatKhau" type="password"  class="form-control" />
+                                                        <span asp-validation-for="@Model.MatKhau" class="text-danger"></span>
+                                                </div>
+                                                <div class="form-item">
+                                                        <label asp-for="@Model.XacNhanMatKhau" class="form-label my-3"></label><sup>*</sup>
+                                                    <input asp-for="@Model.XacNhanMatKhau" type="password" class="form-control" />
+                                                        <span asp-validation-for="@Model.XacNhanMatKhau" class="text-danger"></span>
+                                                </div>
+                                                <div class="form-item">
+                                                    <label class="form-label my-3" asp-for="@Model.HoTen"></label><sup>*</sup>
+                                                    <input asp-for="@Model.HoTen" type="text" class="form-control" />
+                                                    <span asp-validation-for="@Model.HoTen" class="text-danger"></span>
+                                                </div>
+                                                <div class="form-item">
+                                                    <label class="form-label my-3" asp-for="@Model.NgaySinh"></label>
+                                                    <input asp-for="@Model.NgaySinh" class=" form-control" />
+                                                    <span asp-validation-for="@Model.NgaySinh" class="text-danger"></span>
+                                                </div>
+
+                                                <!-- Add this where you want the map to appear -->
+                                                <div class="form-item">
+
+                                                    <label class="form-label my-3">Địa chỉ</label><sup>*</sup>
+                                                    <input type="text" id="searchInput" class="form-control" placeholder="Tìm kiếm địa chỉ...">
+                                                    <div class="map-container">
+                                                        <div id="map"></div>
+                                                    </div>
+                                                    <input type="hidden" asp-for="@Model.DiaChi" id="formattedAddress">
+                                                    <input type="hidden" asp-for="@Model.DiaChiLatitude" id="latitude">
+                                                    <input type="hidden" asp-for="@Model.DiaChiLongitude" id="longitude">
+
+                                                    <span asp-validation-for="@Model.DiaChi" class="text-danger"></span>
+                                                </div>
+
+                                                <div class="form-item">
+                                                    <label class="form-label my-3" asp-for="@Model.DienThoai"></label><sup>*</sup>
+                                                    <input asp-for="@Model.DienThoai" class="form-control" />
+                                                    <span asp-validation-for="@Model.DienThoai" class="text-danger"></span>
+                                                </div>
+
+                                                <div class="form-item">
+                                                    <label class="form-label my-3" asp-for="@Model.Email"></label><sup>*</sup>
+                                                    <input asp-for="@Model.Email" type="email" class="form-control" />
+                                                    <span asp-validation-for="@Model.Email" class="text-danger"></span>
+                                                </div>
+
+                                                <div class="form-item">
+                                                    <label class="form-label my-3" for="Hinh">Hình<sup>*</sup></label>
+                                                    <input type="file" name="Hinh" class="form-control" />
+                                                </div>
+                                            </div>
+
+                                            <div class="row g-4 text-center align-items-center justify-content-center pt-4">
+                                                <button type="submit" class="btn btn-lg bg-gradient-primary btn-lg w-100 mt-4 mb-0">Đăng ký</button>
+                                            </div>
+                                        </div>
+                                    </form>
+                                </div>
+                                <div class="card-footer text-center pt-0 px-lg-2 px-1">
+                                    <p class="mb-2 text-sm mx-auto">
+                                        Already have an account?
+                                        <a asp-controller="access" asp-action="Login" class="text-primary text-gradient font-weight-bold">Sign in</a>
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!--   Core JS Files   -->
+    <script src="../LayoutAdmin/assets/js/core/popper.min.js"></script>
+    <script src="../LayoutAdmin/assets/js/core/bootstrap.min.js"></script>
+    <script src="../LayoutAdmin/assets/js/plugins/perfect-scrollbar.min.js"></script>
+    <script src="../LayoutAdmin/assets/js/plugins/smooth-scrollbar.min.js"></script>
+
+    <script>
+
+        let map, marker, searchBox;
+        const shopLocation = { lat: 21.028511, lng: 105.804817 }; // Thay đổi tọa độ shop của bạn
+
+        function initMap() {
+            // Initialize the main map
+            map = new google.maps.Map(document.getElementById('map'), {
+                center: shopLocation,
+                zoom: 13
+            });
+
+            // Initialize the search box
+            const input = document.getElementById('searchInput');
+            searchBox = new google.maps.places.SearchBox(input);
+            
+            // Create marker
+            marker = new google.maps.Marker({
+                map: map,
+                draggable: true
+            });
+
+            // Add shop marker
+            new google.maps.Marker({
+                position: shopLocation,
+                map: map,
+                icon: 'http://maps.google.com/mapfiles/ms/icons/blue-dot.png',
+                title: 'Vị trí shop'
+            });
+
+            // Listen to SearchBox
+            searchBox.addListener('places_changed', () => {
+                const places = searchBox.getPlaces();
+                if (places.length === 0) return;
+
+                const place = places[0];
+                if (!place.geometry || !place.geometry.location) return;
+
+                updateMap(place.geometry.location, place.formatted_address);
+            });
+
+            // Listen to marker drag events
+            google.maps.event.addListener(marker, 'dragend', function() {
+                const position = marker.getPosition();
+                geocodePosition(position);
+            });
+        }
+
+        function updateMap(location, address) {
+            map.setCenter(location);
+            marker.setPosition(location);
+
+            // Update form fields với giá trị chính xác
+            document.getElementById('formattedAddress').value = address;
+            document.getElementById('latitude').value = location.lat();
+            document.getElementById('longitude').value = location.lng();
+
+            // Calculate distance
+            const distance = google.maps.geometry.spherical.computeDistanceBetween(
+                location,
+                new google.maps.LatLng(shopLocation.lat, shopLocation.lng)
+            );
+            
+            console.log(`Khoảng cách đến shop: ${(distance/1000).toFixed(2)} km`);
+        }
+
+        function geocodePosition(position) {
+            const geocoder = new google.maps.Geocoder();
+            geocoder.geocode({ location: position }, (results, status) => {
+                if (status === 'OK' && results[0]) {
+                    updateMap(position, results[0].formatted_address);
+                    document.getElementById('searchInput').value = results[0].formatted_address;
+                }
+            });
+        }
+
+        // Initialize map when page loads
+        google.maps.event.addDomListener(window, 'load', initMap);
+
+    </script>
+</body>
+
+</html>

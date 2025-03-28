@@ -1,0 +1,481 @@
+﻿@inject BTLW_BDT.Models.BtlLtwQlbdtContext _context
+@{
+    ViewData["Title"] = "Checkout";
+    Layout = "~/Views/Shared/_LayoutCart.cshtml";
+
+    var ngaySinh = Context.Session.GetString("NgaySinh");
+    var ngaySinhFormatted = "";
+    if (!string.IsNullOrEmpty(ngaySinh))
+    {
+        DateTime date;
+        if (DateTime.TryParse(ngaySinh, out date))
+        {
+            ngaySinhFormatted = date.ToString("yyyy-MM-dd");
+        }
+    }
+}
+
+@model List<BTLW_BDT.Models.ChiTietGioHang>
+
+<form asp-controller="Checkout" asp-action="PlaceOrder" method="post" id="checkoutForm">
+    <div class="row px-xl-5">
+        <div class="col-lg-8">
+            <div class="mb-4">
+                <h4 class="font-weight-semi-bold mb-4">Billing Address</h4>
+                <div class="row">
+                    <div class="col-md-6 form-group">
+                        <label>Tên Khách Hàng</label>
+                        <input class="form-control" type="text"
+                               value="@Context.Session.GetString("HoTen")"
+                               readonly>
+                    </div>
+                    <div class="col-md-6 form-group">
+                        <label>Ngày Sinh</label>
+                        <input class="form-control" type="date"
+                               value="@ngaySinhFormatted">
+                    </div>
+                    <div class="col-md-6 form-group">
+                        <label>Số Điện Thoại</label>
+                        <input class="form-control" type="text"
+                               value="@Context.Session.GetString("SoDienThoai")"
+                               readonly>
+                    </div>
+                    <div class="col-md-6 form-group">
+                        <label>Ghi Chú</label>
+                        <textarea class="form-control" name="ghiChu" id="ghiChu" rows="4" cols="50"></textarea>
+                    </div>
+                    <div class="col-md-6 form-group">
+                        <label>Địa chỉ giao hàng</label>
+                        <input type="text" id="searchInput" class="form-control" 
+                               placeholder="Tìm kiếm địa chỉ..." 
+                               value="@Context.Session.GetString("DiaChi")">
+                        <div class="map-container mt-3">
+                            <div id="map"></div>
+                        </div>
+                        <input type="hidden" name="DiaChiGiaoHang" id="formattedAddress">
+                        <input type="hidden" name="DiaChiLatitude" id="latitude">
+                        <input type="hidden" name="DiaChiLongitude" id="longitude">
+                        <input type="hidden" name="PhiGiaoHang" id="shippingFeeInput">
+                        <div id="distanceInfo" class="text-muted small mt-2"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-4">
+            <div class="card border-secondary mb-5">
+                <div class="card-header bg-secondary border-0">
+                    <h4 class="font-weight-semi-bold m-0">Order Total</h4>
+                </div>
+                <div class="card-body">
+                    <h5 class="font-weight-medium mb-3">Products</h5>
+
+                    @foreach (var item in Model)
+                    {
+                        var sanPham = _context.SanPhams.FirstOrDefault(s => s.MaSanPham == item.MaSanPham);
+                        var mauSac = _context.MauSacs.FirstOrDefault(m => m.MaMau == item.ThongSoMau);
+                        var rom = _context.Roms.FirstOrDefault(r => r.MaRom == item.ThongSoRom);
+                        var danhSachRom = _context.Roms.Where(r => r.MaSanPham == item.MaSanPham).ToList();
+                        var baseRom = danhSachRom.OrderBy(r => r.Gia).FirstOrDefault();
+
+                        decimal baseRomGia = baseRom?.Gia.GetValueOrDefault() ?? 0;
+                        decimal selectedRomGia = rom?.Gia.GetValueOrDefault() ?? 0;
+                        decimal donGia = (selectedRomGia - baseRomGia) + sanPham.DonGiaBanRa.GetValueOrDefault();
+                        var tongTien = donGia * (item.SoLuong ?? 0);
+
+                        <div class="d-flex justify-content-between">
+                            <p>@sanPham?.TenSanPham (@mauSac?.TenMau - @rom?.ThongSo) x @item.SoLuong </p>
+                            <p>@Convert.ToDouble(tongTien).ToString("N0") VNĐ</p>
+                        </div>
+                    }
+
+                    <hr class="mt-0">
+                    <div class="d-flex justify-content-between mb-3 pt-1">
+                        <h6 class="font-weight-medium">Subtotal</h6>
+                        <h6 class="font-weight-medium">
+                            @{
+                                var totalAmount = Model.Sum(item =>
+                                {
+                                    var sp = _context.SanPhams.FirstOrDefault(s => s.MaSanPham == item.MaSanPham);
+                                    var danhSachRom = _context.Roms.Where(r => r.MaSanPham == item.MaSanPham).ToList();
+                                    var baseRom = danhSachRom.OrderBy(r => r.Gia).FirstOrDefault();
+                                    var selectedRom = _context.Roms.FirstOrDefault(r => r.MaRom == item.ThongSoRom);
+
+                                    decimal baseRomGia = baseRom?.Gia.GetValueOrDefault() ?? 0;
+                                    decimal selectedRomGia = selectedRom?.Gia.GetValueOrDefault() ?? 0;
+                                    decimal donGia = (selectedRomGia - baseRomGia) + sp.DonGiaBanRa.GetValueOrDefault();
+
+                                    return donGia * (item.SoLuong ?? 0);
+                                });
+                            }
+                            @Convert.ToDouble(totalAmount).ToString("N0") VNĐ
+                        </h6>
+                    </div>
+                    <div class="d-flex justify-content-between">
+                        <h6 class="font-weight-medium">Shipping</h6>
+                        <h6 class="font-weight-medium" id="shippingFee">Calculating...</h6>
+                    </div>
+                </div>
+                <div class="card-footer border-secondary bg-transparent">
+                    <div class="d-flex justify-content-between mt-2">
+                        <h5 class="font-weight-bold">Total</h5>
+                        <h5 class="font-weight-bold" id="totalAmount">
+                            Calculating...
+                        </h5>
+                    </div>
+                </div>
+            </div>
+
+            <input type="hidden" id="paymentMethod" name="paymentMethod" value="Bank transfer via QR code" />
+            
+            <div class="payment-info">
+                <div class="payment-selection" onclick="openModal()">
+                    <img src="../assets/img/qr-icon.png" alt="Icon" class="icon" id="selectedIcon">
+                    <div class="payment-text">
+                        <p id="selectedMethod">Bank transfer via QR code</p>
+                    </div>
+                    <span class="change-text">change &gt;</span>
+                </div>
+            </div>
+
+            <div class="card-footer border-secondary bg-transparent">
+                <button type="submit" class="btn btn-lg btn-block btn-primary font-weight-bold my-3 py-3">
+                    Place Order
+                </button>
+            </div>
+        </div>
+    </div>
+</form>
+
+<div class="modal" id="paymentModal">
+    <div class="modal-content">
+        <span class="close" onclick="closeModal()">&times;</span>
+        <h2>Payment Method</h2>
+        <div class="payment-options">
+            <div class="option selected" onclick="selectMethod('Bank transfer via QR code', '../assets/img/qr-icon.png')">
+                <img src="../assets/img/qr-icon.png" alt="QR Code" class="option-icon">
+                <span>Bank transfer via QR code</span>
+            </div>
+        </div>
+        <button class="confirm-btn" type="button" onclick="confirmSelection()">Confirm</button>
+    </div>
+</div>
+
+<style>
+    /* Payment info section */
+    .payment-info {
+        padding: 20px;
+    }
+
+    .payment-selection {
+        display: flex;
+        align-items: center;
+        background-color: #fff;
+        padding: 15px;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        cursor: pointer;
+        transition: background-color 0.3s, transform 0.1s;
+    }
+
+        .payment-selection:hover {
+            background-color: #f5f5f5;
+            transform: scale(1.02);
+        }
+
+    /* Icon next to payment method */
+    .icon {
+        width: 40px;
+        height: 40px;
+        margin-right: 15px;
+    }
+
+    /* Payment text styling */
+    .payment-text p {
+        margin: 0;
+        font-weight: bold;
+        font-size: 18px;
+        color: #333;
+    }
+
+    .change-text {
+        margin-left: auto;
+        color: #007bff;
+        font-weight: bold;
+        cursor: pointer;
+        transition: color 0.2s;
+    }
+
+        .change-text:hover {
+            color: #0056b3;
+        }
+
+    /* Modal styles */
+    .modal {
+        display: none;
+        position: fixed;
+        z-index: 1000;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.5);
+    }
+
+    .modal-content {
+        background-color: white;
+        margin: 10% auto;
+        padding: 25px;
+        width: 90%;
+        max-width: 400px;
+        border-radius: 12px;
+        position: relative;
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+        text-align: center;
+    }
+
+    .close {
+        position: absolute;
+        right: 15px;
+        top: 10px;
+        font-size: 28px;
+        cursor: pointer;
+    }
+
+    .payment-options {
+        margin-top: 20px;
+        display: flex;
+        flex-direction: column;
+        gap: 15px;
+    }
+
+        .payment-options .option {
+            display: flex;
+            align-items: center;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background-color 0.3s, transform 0.1s;
+        }
+
+            .payment-options .option:hover {
+                background-color: #e9ecef;
+                transform: scale(1.03);
+            }
+
+    .option-icon {
+        width: 40px;
+        height: 40px;
+        margin-right: 15px;
+    }
+
+    .payment-options .option.selected {
+        background-color: #d1e7dd;
+        color: #0f5132;
+        font-weight: bold;
+    }
+
+    .confirm-btn {
+        margin-top: 20px;
+        width: 100%;
+        padding: 12px 0;
+        background-color: #4CAF50;
+        color: white;
+        border: none;
+        border-radius: 5px;
+        font-size: 16px;
+        cursor: pointer;
+        transition: background-color 0.3s;
+    }
+
+        .confirm-btn:hover {
+            background-color: #45a049;
+        }
+
+    .map-container {
+        height: 300px;
+        width: 100%;
+        margin-top: 10px;
+    }
+    #map {
+        height: 100%;
+        width: 100%;
+        border-radius: 8px;
+    }
+    #distanceInfo {
+        margin-top: 5px;
+        font-size: 0.9em;
+    }
+    .distance-warning {
+        color: red;
+        font-weight: bold;
+    }
+</style>
+
+<script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBqIm1BH4Z2iXUobBw9w98dpCIIyRLP-QE&libraries=places,geometry"></script>
+<script>
+    let selectedMethodText = 'Bank transfer via QR code';
+    let selectedIconSrc = '../assets/img/qr-icon.png';
+    let currentSelectedElement = null;
+    let map, marker, searchBox;
+    const shopLocation = { lat: 21.028511, lng: 105.804817 }; // Tọa độ shop
+    
+    // Lấy tổng tiền từ Model thông qua Razor
+    const subtotalAmount = @(Model.Sum(item => {
+        var sp = _context.SanPhams.FirstOrDefault(s => s.MaSanPham == item.MaSanPham);
+        var danhSachRom = _context.Roms.Where(r => r.MaSanPham == item.MaSanPham).ToList();
+        var baseRom = danhSachRom.OrderBy(r => r.Gia).FirstOrDefault();
+        var selectedRom = _context.Roms.FirstOrDefault(r => r.MaRom == item.ThongSoRom);
+
+        decimal baseRomGia = baseRom?.Gia.GetValueOrDefault() ?? 0;
+        decimal selectedRomGia = selectedRom?.Gia.GetValueOrDefault() ?? 0;
+        decimal donGia = (selectedRomGia - baseRomGia) + sp.DonGiaBanRa.GetValueOrDefault();
+
+        return donGia * (item.SoLuong ?? 0);
+    }));
+
+    function openModal() {
+        document.getElementById('paymentModal').style.display = 'block';
+    }
+
+    function closeModal() {
+        document.getElementById('paymentModal').style.display = 'none';
+    }
+
+    function selectMethod(method, icon) {
+        selectedMethodText = method;
+        selectedIconSrc = icon;
+
+        if (currentSelectedElement) {
+            currentSelectedElement.classList.remove('selected');
+        }
+
+        event.target.classList.add('selected');
+        currentSelectedElement = event.target;
+
+        document.getElementById('paymentMethod').value = method;
+    }
+
+    function confirmSelection() {
+        const method = selectedMethodText;
+        document.getElementById('paymentMethod').value = method;
+        document.getElementById('selectedMethod').textContent = method;
+        document.getElementById('selectedIcon').src = selectedIconSrc;
+        closeModal();
+    }
+
+    function initMap() {
+        const initialLocation = { lat: 21.028511, lng: 105.804817 };
+
+        map = new google.maps.Map(document.getElementById('map'), {
+            center: initialLocation,
+            zoom: 13
+        });
+
+        const input = document.getElementById('searchInput');
+        searchBox = new google.maps.places.SearchBox(input);
+
+        marker = new google.maps.Marker({
+            map: map,
+            position: initialLocation,
+            draggable: true
+        });
+
+        // Marker shop
+        new google.maps.Marker({
+            position: shopLocation,
+            map: map,
+            icon: 'http://maps.google.com/mapfiles/ms/icons/blue-dot.png',
+            title: 'Vị trí shop'
+        });
+
+        searchBox.addListener('places_changed', () => {
+            const places = searchBox.getPlaces();
+            if (places.length === 0) return;
+
+            const place = places[0];
+            if (!place.geometry || !place.geometry.location) return;
+
+            updateMap(place.geometry.location, place.formatted_address);
+        });
+
+        marker.addListener('dragend', function() {
+            const position = marker.getPosition();
+            geocodePosition(position);
+        });
+    }
+
+    function updateMap(location, address) {
+        map.setCenter(location);
+        marker.setPosition(location);
+
+        // Cập nhật các input hidden
+        document.getElementById('formattedAddress').value = address;
+        document.getElementById('latitude').value = location.lat();
+        document.getElementById('longitude').value = location.lng();
+        document.getElementById('searchInput').value = address;
+
+        calculateShippingFee(location);
+    }
+
+    function calculateShippingFee(location) {
+        const distance = google.maps.geometry.spherical.computeDistanceBetween(
+            location,
+            new google.maps.LatLng(shopLocation.lat, shopLocation.lng)
+        );
+        
+        const distanceKm = distance / 1000;
+        const distanceInfo = document.getElementById('distanceInfo');
+        const shippingFeeElement = document.getElementById('shippingFee');
+        const totalAmountElement = document.getElementById('totalAmount');
+        const submitButton = document.querySelector('button[type="submit"]');
+
+        if (distanceKm > 50) {
+            distanceInfo.innerHTML = `<span class="distance-warning">Khoảng cách ${distanceKm.toFixed(2)}km vượt quá giới hạn giao hàng (50km). Vui lòng chọn địa chỉ khác.</span>`;
+            submitButton.disabled = true;
+            return;
+        }
+
+        // Tính phí ship: 25,000đ cho 5km đầu, mỗi km tiếp theo 5,000đ
+        let shippingFee = 25000;
+        if (distanceKm > 5) {
+            shippingFee += Math.ceil(distanceKm - 5) * 5000;
+        }
+
+        distanceInfo.textContent = `Khoảng cách: ${distanceKm.toFixed(2)}km`;
+        shippingFeeElement.textContent = `${shippingFee.toLocaleString('vi-VN')} VNĐ`;
+        
+        const total = subtotalAmount + shippingFee;
+        totalAmountElement.textContent = `${total.toLocaleString('vi-VN')} VNĐ`;
+
+        // Cập nhật giá trị vào input hidden
+        document.getElementById('shippingFeeInput').value = shippingFee;
+        
+        submitButton.disabled = false;
+    }
+
+    function geocodePosition(position) {
+        const geocoder = new google.maps.Geocoder();
+        geocoder.geocode({ location: position }, (results, status) => {
+            if (status === 'OK' && results[0]) {
+                updateMap(position, results[0].formatted_address);
+            }
+        });
+    }
+
+    google.maps.event.addDomListener(window, 'load', initMap);
+
+    // Thêm event listener cho form submit
+    document.getElementById('checkoutForm').addEventListener('submit', function(e) {
+        const address = document.getElementById('formattedAddress').value;
+        const latitude = document.getElementById('latitude').value;
+        const longitude = document.getElementById('longitude').value;
+        const shippingFee = document.getElementById('shippingFeeInput').value;
+
+        if (!address || !latitude || !longitude || !shippingFee) {
+            e.preventDefault();
+            alert('Vui lòng chọn địa chỉ giao hàng');
+            return false;
+        }
+    });
+</script>
