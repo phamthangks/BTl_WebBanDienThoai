@@ -546,7 +546,7 @@
         const newRomHtml = `
                 <div class="rom-entry">
                     <h4>ROM #${romCount}</h4>
-                    <div class="form-group">
+                    <div class="form-group">    
                         <label class="control-label">Mã ROM</label>
                             <input type="text" class="form-control rom-ma" readonly/>
                     </div>
@@ -1066,91 +1066,105 @@
             document.getElementById('editRAM').value = product.ram;
 
             // Xử lý ROM
-            const romContainer = document.getElementById('editromContainer');
-            romContainer.innerHTML = ''; // Xóa ROM cũ
-            if (product.roms && product.roms.length > 0) {
-                product.roms.forEach((rom, index) => {
-                    const romHtml = `
-                        <div class="editrom-entry">
-                            <h4>ROM #${index + 1}</h4>
-                            <div class="form-group">
-                                <label class="control-label">Mã ROM</label>
-                                <input type="text" class="form-control editrom-ma" value="${rom.maRom}" readonly/>
-                            </div>
-                            <div class="form-group">
-                                <label class="control-label">Thông số ROM</label>
-                                <select class="form-control editrom-thongso" onchange="updateRomPrice(this)">
-                                    <option value="-1" data-price="0">Chọn ROM</option>
-                                    <option value="64GB" data-price="200000" ${rom.thongSo === '64GB' ? 'selected' : ''}>64GB</option>
-                                    <option value="128GB" data-price="400000" ${rom.thongSo === '128GB' ? 'selected' : ''}>128GB</option>
-                                    <option value="256GB" data-price="600000" ${rom.thongSo === '256GB' ? 'selected' : ''}>256GB</option>
-                                    <option value="512GB" data-price="800000" ${rom.thongSo === '512GB' ? 'selected' : ''}>512GB</option>
-                                    <option value="1TB" data-price="1200000" ${rom.thongSo === '1TB' ? 'selected' : ''}>1TB</option>
-                                </select>
-                            </div>
-                            <div class="form-group">
-                                <label class="control-label">Giá</label>
-                                <input type="number" class="form-control editrom-gia" value="${rom.gia}" readonly />
-                            </div>
-                            <button type="button" class="btn btn-danger" onclick="removeEditRomEntry(this)">Xóa ROM</button>
-                        </div>
-                    `;
-                    romContainer.insertAdjacentHTML('beforeend', romHtml);
-                });
-            }
+              const romContainer = document.getElementById('editromContainer');
+    romContainer.innerHTML = '';
 
-            // Xử lý Màu sắc và Ảnh
-            const mauContainer = document.getElementById('editmauSacContainer');
-            mauContainer.innerHTML = ''; // Xóa màu cũ
-            if (product.mausacs && product.mausacs.length > 0) {
-                product.mausacs.forEach((mau, index) => {
-                    // Lọc ảnh theo màu
-                    const anhCuaMau = product.anhSanPhams.filter(anh => anh.maMau === mau.maMau);
-                    
-                    const mauHtml = `
-                        <div class="editmau-entry" data-mamau="${mau.maMau}">
-                            <h4>Màu sắc #${index + 1}</h4>
-                            <div class="form-group">
-                                <label class="control-label">Mã Màu</label>
-                                <input type="text" class="form-control editmau-ma" value="${mau.maMau}" readonly />
+    console.log("hello");
+    console.log(product.roms); // <- In đầy đủ để kiểm tra
+    console.log("Product Roms data:", product.roms?.$values);
+
+    if (product.roms && product.roms.$values && product.roms.$values.length > 0) {
+        product.roms.$values.forEach((rom, index) => {
+            const romHtml = `
+                <div class="editrom-entry">
+                    <h4>ROM #${index + 1}</h4>
+                    <div class="form-group">
+                        <label class="control-label">Mã ROM</label>
+                        <input type="text" class="form-control editrom-ma" value="${rom.maRom}" readonly/>
+                    </div>
+                    <div class="form-group">
+                        <label class="control-label">Thông số ROM</label>
+                        <select class="form-control editrom-thongso" onchange="updateRomPrice(this)">
+                            <option value="-1" data-price="0">Chọn ROM</option>
+                            <option value="64GB" data-price="200000" ${rom.thongSo === '64GB' ? 'selected' : ''}>64GB</option>
+                            <option value="128GB" data-price="400000" ${rom.thongSo === '128GB' ? 'selected' : ''}>128GB</option>
+                            <option value="256GB" data-price="600000" ${rom.thongSo === '256GB' ? 'selected' : ''}>256GB</option>
+                            <option value="512GB" data-price="800000" ${rom.thongSo === '512GB' ? 'selected' : ''}>512GB</option>
+                            <option value="1TB" data-price="1200000" ${rom.thongSo === '1TB' ? 'selected' : ''}>1TB</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="control-label">Giá</label>
+                        <input type="number" class="form-control editrom-gia" value="${rom.gia}" readonly />
+                    </div>
+                    <button type="button" class="btn btn-danger" onclick="removeEditRomEntry(this)">Xóa ROM</button>
+                </div>
+            `;
+            romContainer.insertAdjacentHTML('beforeend', romHtml);
+        });
+    } else {
+        console.warn("Không có ROM để hiển thị!");
+    }
+
+               // Xử lý Màu sắc và Ảnh
+    const mauContainer = document.getElementById('editmauSacContainer');
+    mauContainer.innerHTML = ''; // Xóa màu cũ
+
+    const mausacs = product.mausacs?.$values || [];
+    const anhs = product.anhSanPhams?.$values || [];
+
+    if (mausacs.length > 0) {
+        mausacs.forEach((mau, index) => {
+            // Lọc ảnh theo màu
+            const anhCuaMau = anhs.filter(anh => anh.maMau === mau.maMau);
+
+            const mauHtml = `
+                <div class="editmau-entry" data-mamau="${mau.maMau}">
+                    <h4>Màu sắc #${index + 1}</h4>
+                    <div class="form-group">
+                        <label class="control-label">Mã Màu</label>
+                        <input type="text" class="form-control editmau-ma" value="${mau.maMau}" readonly />
+                    </div>
+                    <div class="form-group">
+                        <label class="control-label">Tên màu</label>
+                        <select class="form-control editmau-ten">
+                            <option value="-1">Chọn Màu</option>
+                            <option value="Xanh" ${mau.tenMau === 'Xanh' ? 'selected' : ''}>Xanh</option>
+                            <option value="Tím" ${mau.tenMau === 'Tím' ? 'selected' : ''}>Tím</option>
+                            <option value="Đen" ${mau.tenMau === 'Đen' ? 'selected' : ''}>Đen</option>
+                            <option value="Trắng" ${mau.tenMau === 'Trắng' ? 'selected' : ''}>Trắng</option>
+                            <option value="Vàng" ${mau.tenMau === 'Vàng' ? 'selected' : ''}>Vàng</option>
+                        </select>
+                    </div>
+                    <div class="editanhSpContainer">
+                        ${anhCuaMau.map((anh, anhIndex) => `
+                            <div class="editanh-entry">
+                                <h6>Ảnh #${anhIndex + 1}</h6>
+                                <div class="form-group">
+                                    <label class="control-label">Ảnh hiện tại</label>
+                                    <img src="/PhoneImages/Images/${anh.tenFile}"
+                                         alt="Current Image"
+                                         style="max-width: 200px; max-height: 200px; display: block; margin: 10px 0;" />
+                                    <input type="hidden" class="editanh-current" value="${anh.tenFile}" />
+                                    <label class="control-label">Chọn ảnh mới (nếu muốn thay đổi)</label>
+                                    <input type="file" class="form-control editanh-ten" accept="image/*" onchange="previewEditImage(this)" />
+                                    <img class="preview-image" src="" alt="Preview"
+                                         style="max-width: 200px; max-height: 200px; display: none; margin: 10px 0;" />
+                                </div>
+                                <button type="button" class="btn btn-danger" onclick="removeEditAnhEntry(this)">Xóa Ảnh</button>
                             </div>
-                            <div class="form-group">
-                                <label class="control-label">Tên màu</label>
-                                <select class="form-control editmau-ten">
-                                    <option value="-1">Chọn Màu</option>
-                                    <option value="Xanh" ${mau.tenMau === 'Xanh' ? 'selected' : ''}>Xanh</option>
-                                    <option value="Tím" ${mau.tenMau === 'Tím' ? 'selected' : ''}>Tím</option>
-                                    <option value="Đen" ${mau.tenMau === 'Đen' ? 'selected' : ''}>Đen</option>
-                                    <option value="Trắng" ${mau.tenMau === 'Trắng' ? 'selected' : ''}>Trắng</option>
-                                    <option value="Vàng" ${mau.tenMau === 'Vàng' ? 'selected' : ''}>Vàng</option>
-                                </select>
-                            </div>
-                            <div class="editanhSpContainer">
-                                ${anhCuaMau.map((anh, anhIndex) => `
-                                    <div class="editanh-entry">
-                                        <h6>Ảnh #${anhIndex + 1}</h6>
-                                        <div class="form-group">
-                                            <label class="control-label">Ảnh hiện tại</label>
-                                            <img src="/PhoneImages/Images/${anh.tenFile}" 
-                                                 alt="Current Image" 
-                                                 style="max-width: 200px; max-height: 200px; display: block; margin: 10px 0;" />
-                                            <input type="hidden" class="editanh-current" value="${anh.tenFile}" />
-                                            <label class="control-label">Chọn ảnh mới (nếu muốn thay đổi)</label>
-                                            <input type="file" class="form-control editanh-ten" accept="image/*" onchange="previewEditImage(this)" />
-                                            <img class="preview-image" src="" alt="Preview" 
-                                                 style="max-width: 200px; max-height: 200px; display: none; margin: 10px 0;" />
-                                        </div>
-                                        <button type="button" class="btn btn-danger" onclick="removeEditAnhEntry(this)">Xóa Ảnh</button>
-                                    </div>
-                                `).join('')}
-                            </div>
-                            <button type="button" class="btn btn-secondary" onclick="addEditAnhEntry(this)">Thêm Ảnh</button>
-                            <button type="button" class="btn btn-danger" onclick="removeEditMauEntry(this)">Xóa Màu</button>
-                        </div>
-                    `;
-                    mauContainer.insertAdjacentHTML('beforeend', mauHtml);
-                });
-            }
+                        `).join('')}
+                    </div>
+                    <button type="button" class="btn btn-secondary" onclick="addEditAnhEntry(this)">Thêm Ảnh</button>
+                    <button type="button" class="btn btn-danger" onclick="removeEditMauEntry(this)">Xóa Màu</button>
+                </div>
+            `;
+            mauContainer.insertAdjacentHTML('beforeend', mauHtml);
+        });
+    } else {
+        console.warn("Không có màu sắc để hiển thị!");
+    }
+
 
         } catch (error) {
             console.error('Error fetching product:', error);
