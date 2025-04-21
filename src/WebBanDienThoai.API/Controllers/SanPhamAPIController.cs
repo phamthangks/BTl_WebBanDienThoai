@@ -9,11 +9,16 @@ namespace WebBanDienThoai.API.Controllers
     [ApiController]
     public class SanPhamAPI : ControllerBase
     {
-        BtlLtwQlbdtContext db = new BtlLtwQlbdtContext();
+        private readonly BtlLtwQlbdtContext _context;
+
+        public SanPhamAPI(BtlLtwQlbdtContext context)
+        {
+            _context = context;
+        }
         [HttpGet]
         public IEnumerable<SanPham> GetProducts()
         {
-            return db.SanPhams
+            return _context.SanPhams
                      .Include(sp => sp.Roms)
                      .Include(sp => sp.MauSacs)
                      .OrderBy(x => x.TenSanPham)
@@ -23,7 +28,7 @@ namespace WebBanDienThoai.API.Controllers
         [HttpGet("GetProductsByID/{maSanPham}")]
         public IActionResult GetProductsByID(string maSanPham)
         {
-            var sanPham = db.SanPhams
+            var sanPham = _context.SanPhams
                 .Include(sp => sp.Roms)
                 .Include(sp => sp.MauSacs)
                 .Include(sp => sp.AnhSanPhams)
@@ -43,19 +48,19 @@ namespace WebBanDienThoai.API.Controllers
                 if (ModelState.IsValid)
                 {
                     // Kiểm tra sản phẩm đã tồn tại chưa
-                    var existingProduct = db.SanPhams.Find(sanPham.MaSanPham);
+                    var existingProduct = _context.SanPhams.Find(sanPham.MaSanPham);
                     if (existingProduct != null)
                     {
                         return BadRequest("Mã sản phẩm đã tồn tại");
                     }
 
-                    using (var transaction = db.Database.BeginTransaction())
+                    using (var transaction = _context.Database.BeginTransaction())
                     {
                         try
                         {
                             // Thêm sản phẩm
-                            db.SanPhams.Add(sanPham);
-                            db.SaveChanges();
+                            _context.SanPhams.Add(sanPham);
+                            _context.SaveChanges();
 
                             // Thêm ROM nếu có
                             if (sanPham.Roms != null && sanPham.Roms.Any())
@@ -63,7 +68,7 @@ namespace WebBanDienThoai.API.Controllers
                                 foreach (var rom in sanPham.Roms)
                                 {
                                     // Kiểm tra nếu đã tồn tại cặp MaSanPham và MaRom
-                                    var existingRom = db.Roms
+                                    var existingRom = _context.Roms
                                         .FirstOrDefault(r => r.MaSanPham == rom.MaSanPham && r.MaRom == rom.MaRom);
 
                                     if (existingRom == null)
@@ -72,7 +77,7 @@ namespace WebBanDienThoai.API.Controllers
                                         rom.MaSanPham = sanPham.MaSanPham;
 
                                         Console.WriteLine($"Thêm mới: MaRom: {rom.MaRom}, MaSanPham: {rom.MaSanPham}");
-                                        db.Roms.Add(rom);
+                                        _context.Roms.Add(rom);
                                     }
                                     else
                                     {
@@ -80,14 +85,14 @@ namespace WebBanDienThoai.API.Controllers
                                     }
                                 }
 
-                                db.SaveChanges();
+                                _context.SaveChanges();
                             }
                             if (sanPham.MauSacs != null && sanPham.MauSacs.Any())
                             {
                                 foreach (var ms in sanPham.MauSacs)
                                 {
                                     // Kiểm tra nếu đã tồn tại cặp MaSanPham và MaRom
-                                    var existingMau = db.MauSacs
+                                    var existingMau = _context.MauSacs
                                         .FirstOrDefault(m => m.MaSanPham == ms.MaSanPham && m.MaMau == m.MaMau);
 
                                     if (existingMau == null)
@@ -96,7 +101,7 @@ namespace WebBanDienThoai.API.Controllers
                                         ms.MaSanPham = sanPham.MaSanPham;
 
                                         Console.WriteLine($"Thêm mới: MaMau: {ms.MaMau}, MaSanPham: {ms.MaSanPham}");
-                                        db.MauSacs.Add(ms);
+                                        _context.MauSacs.Add(ms);
                                     }
                                     else
                                     {
@@ -104,14 +109,14 @@ namespace WebBanDienThoai.API.Controllers
                                     }
                                 }
 
-                                db.SaveChanges();
+                                _context.SaveChanges();
                             }
                             if (sanPham.AnhSanPhams != null && sanPham.AnhSanPhams.Any())
                             {
                                 foreach (var anh in sanPham.AnhSanPhams)
                                 {
                                     // Kiểm tra nếu đã tồn tại cặp MaSanPham và MaRom
-                                    var existingAnh = db.AnhSanPhams
+                                    var existingAnh = _context.AnhSanPhams
                                         .FirstOrDefault(m => m.MaSanPham == anh.MaSanPham && m.TenFile == anh.TenFile);
 
                                     if (existingAnh == null)
@@ -120,7 +125,7 @@ namespace WebBanDienThoai.API.Controllers
                                         anh.MaSanPham = sanPham.MaSanPham;
 
                                         Console.WriteLine($"Thêm mới: MaMau: {anh.TenFile}, MaSanPham: {anh.MaSanPham}");
-                                        db.AnhSanPhams.Add(anh);
+                                        _context.AnhSanPhams.Add(anh);
                                     }
                                     else
                                     {
@@ -128,11 +133,11 @@ namespace WebBanDienThoai.API.Controllers
                                     }
                                 }
 
-                                db.SaveChanges();
+                                _context.SaveChanges();
                             }
 
                             // Thêm lịch sử hoạt động
-                            var lastMaHoatDong = db.LichSuHoatDongs
+                            var lastMaHoatDong = _context.LichSuHoatDongs
                                                 .OrderByDescending(ls => ls.MaHoatDong)
                                                 .Select(ls => ls.MaHoatDong)
                                                 .FirstOrDefault();
@@ -150,8 +155,8 @@ namespace WebBanDienThoai.API.Controllers
                                 TenDangNhap = User.Identity?.Name
                             };
 
-                            db.LichSuHoatDongs.Add(lichSu);
-                            db.SaveChanges();
+                            _context.LichSuHoatDongs.Add(lichSu);
+                            _context.SaveChanges();
 
                             transaction.Commit();
                             return Ok(sanPham);
@@ -185,11 +190,11 @@ namespace WebBanDienThoai.API.Controllers
             {
                 if (ModelState.IsValid)
                 {
-                    using (var transaction = db.Database.BeginTransaction())
+                    using (var transaction = _context.Database.BeginTransaction())
                     {
                         try
                         {
-                            var existingProduct = db.SanPhams
+                            var existingProduct = _context.SanPhams
                                 .Include(sp => sp.Roms)
                                 .Include(sp => sp.MauSacs)
                                 .Include(sp => sp.AnhSanPhams)
@@ -209,7 +214,7 @@ namespace WebBanDienThoai.API.Controllers
                             }
 
                             // Cập nhật thông tin sản phẩm
-                            db.Entry(existingProduct).CurrentValues.SetValues(sanPham);
+                            _context.Entry(existingProduct).CurrentValues.SetValues(sanPham);
 
                             if (sanPham.Roms != null)
                             {
@@ -217,18 +222,18 @@ namespace WebBanDienThoai.API.Controllers
                                 var romsToRemove = existingProduct.Roms
                                     .Where(existingRom => !sanPham.Roms.Any(rom => rom.MaRom == existingRom.MaRom))
                                     .ToList();
-                                db.Roms.RemoveRange(romsToRemove);
+                                _context.Roms.RemoveRange(romsToRemove);
 
                                 // Thêm ROMs mới
                                 foreach (var rom in sanPham.Roms)
                                 {
                                     // Kiểm tra nếu chưa có
-                                    var existingRom = db.Roms
+                                    var existingRom = _context.Roms
                                         .FirstOrDefault(r => r.MaSanPham == rom.MaSanPham && r.MaRom == rom.MaRom);
                                     if (existingRom == null)
                                     {
                                         rom.MaSanPham = sanPham.MaSanPham;
-                                        db.Roms.Add(rom);
+                                        _context.Roms.Add(rom);
                                     }
                                 }
                             }
@@ -240,17 +245,17 @@ namespace WebBanDienThoai.API.Controllers
                                 var mausacsToRemove = existingProduct.MauSacs
                                     .Where(existingMau => !sanPham.MauSacs.Any(ms => ms.MaMau == existingMau.MaMau))
                                     .ToList();
-                                db.MauSacs.RemoveRange(mausacsToRemove);
+                                _context.MauSacs.RemoveRange(mausacsToRemove);
 
                                 // Thêm màu sắc mới
                                 foreach (var ms in sanPham.MauSacs)
                                 {
-                                    var existingMau = db.MauSacs
+                                    var existingMau = _context.MauSacs
                                         .FirstOrDefault(r => r.MaSanPham == ms.MaSanPham && r.MaMau == ms.MaMau);
                                     if (existingMau == null)
                                     {
                                         ms.MaSanPham = sanPham.MaSanPham;
-                                        db.MauSacs.Add(ms);
+                                        _context.MauSacs.Add(ms);
                                     }
                                 }
                             }
@@ -260,23 +265,23 @@ namespace WebBanDienThoai.API.Controllers
                                 var anhToRemove = existingProduct.AnhSanPhams
                                     .Where(existingAnh => !sanPham.AnhSanPhams.Any(ms => ms.TenFile == existingAnh.TenFile))
                                     .ToList();
-                                db.AnhSanPhams.RemoveRange(anhToRemove);
+                                _context.AnhSanPhams.RemoveRange(anhToRemove);
 
                                 // Thêm màu sắc mới
                                 foreach (var ms in sanPham.AnhSanPhams)
                                 {
-                                    var existingAnh = db.AnhSanPhams
+                                    var existingAnh = _context.AnhSanPhams
                                         .FirstOrDefault(r => r.MaSanPham == ms.MaSanPham && r.TenFile == ms.TenFile);
                                     if (existingAnh == null)
                                     {
                                         ms.MaSanPham = sanPham.MaSanPham;
-                                        db.AnhSanPhams.Add(ms);
+                                        _context.AnhSanPhams.Add(ms);
                                     }
                                 }
                             }
 
                             // Thêm lịch sử
-                            var lastMaHoatDong = db.LichSuHoatDongs
+                            var lastMaHoatDong = _context.LichSuHoatDongs
                                 .OrderByDescending(ls => ls.MaHoatDong)
                                 .Select(ls => ls.MaHoatDong)
                                 .FirstOrDefault();
@@ -294,8 +299,8 @@ namespace WebBanDienThoai.API.Controllers
                                 TenDangNhap = User.Identity?.Name
                             };
 
-                            db.LichSuHoatDongs.Add(lichSu);
-                            db.SaveChanges();
+                            _context.LichSuHoatDongs.Add(lichSu);
+                            _context.SaveChanges();
 
                             transaction.Commit();
                             return Ok(sanPham);
@@ -324,38 +329,38 @@ namespace WebBanDienThoai.API.Controllers
             }
 
             // Tìm ROM theo MaROM trong cơ sở dữ liệu
-            var rom = db.Roms.FirstOrDefault(r => r.MaRom == maRom);
+            var rom = _context.Roms.FirstOrDefault(r => r.MaRom == maRom);
             if (rom == null)
             {
                 return NotFound("ROM không tìm thấy.");
             }
 
             // Xóa ROM
-            db.Roms.Remove(db.Roms.Find(maRom));
-            db.SaveChanges();
+            _context.Roms.Remove(_context.Roms.Find(maRom));
+            _context.SaveChanges();
 
             return Ok(new { message = "ROM đã được xóa." });
         }
         [HttpDelete("{maSanPham}")]
         public IActionResult XoaSanPham(string maSanPham)
         {
-            var CTGH = db.ChiTietGioHangs.Where(x => x.MaSanPham == maSanPham).ToList();
-            if (CTGH.Any()) db.RemoveRange(CTGH);
-            var CTHDB = db.ChiTietHoaDonBans.Where(x => x.MaSanPham == maSanPham).ToList();
-            if (CTHDB.Any()) db.RemoveRange(CTHDB);
+            var CTGH = _context.ChiTietGioHangs.Where(x => x.MaSanPham == maSanPham).ToList();
+            if (CTGH.Any()) _context.RemoveRange(CTGH);
+            var CTH_context = _context.ChiTietHoaDonBans.Where(x => x.MaSanPham == maSanPham).ToList();
+            if (CTH_context.Any()) _context.RemoveRange(CTH_context);
 
-            var anhSanPhams = db.AnhSanPhams.Where(x => x.MaSanPham == maSanPham);
-            if (anhSanPhams.Any()) db.RemoveRange(anhSanPhams);
+            var anhSanPhams = _context.AnhSanPhams.Where(x => x.MaSanPham == maSanPham);
+            if (anhSanPhams.Any()) _context.RemoveRange(anhSanPhams);
 
-            var rom = db.Roms.Where(x => x.MaSanPham == maSanPham);
-            if (rom.Any()) db.RemoveRange(rom);
+            var rom = _context.Roms.Where(x => x.MaSanPham == maSanPham);
+            if (rom.Any()) _context.RemoveRange(rom);
 
-            var mausac = db.MauSacs.Where(x => x.MaSanPham == maSanPham);
-            if (mausac.Any()) db.RemoveRange(mausac);
-            db.Remove(db.SanPhams.Find(maSanPham));
-            db.SaveChanges();
+            var mausac = _context.MauSacs.Where(x => x.MaSanPham == maSanPham);
+            if (mausac.Any()) _context.RemoveRange(mausac);
+            _context.Remove(_context.SanPhams.Find(maSanPham));
+            _context.SaveChanges();
 
-            var lastMaHoatDong = db.LichSuHoatDongs
+            var lastMaHoatDong = _context.LichSuHoatDongs
                                    .OrderByDescending(ls => ls.MaHoatDong)
                                    .Select(ls => ls.MaHoatDong)
                                    .FirstOrDefault();
@@ -373,8 +378,8 @@ namespace WebBanDienThoai.API.Controllers
                 TenDangNhap = User.Identity.Name
             };
 
-            db.LichSuHoatDongs.Add(lichSu);
-            db.SaveChanges();
+            _context.LichSuHoatDongs.Add(lichSu);
+            _context.SaveChanges();
 
             return Ok(new { message = "Xóa sản phẩm thành công" });
 
@@ -384,7 +389,7 @@ namespace WebBanDienThoai.API.Controllers
         {
             try
             {
-                var lastMaHoatDong = db.LichSuHoatDongs
+                var lastMaHoatDong = _context.LichSuHoatDongs
                     .OrderByDescending(ls => ls.MaHoatDong)
                     .Select(ls => ls.MaHoatDong)
                     .FirstOrDefault();
@@ -402,14 +407,178 @@ namespace WebBanDienThoai.API.Controllers
                     TenDangNhap = tenDangNhap
                 };
 
-                db.LichSuHoatDongs.Add(lichSu);
-                db.SaveChanges();
+                _context.LichSuHoatDongs.Add(lichSu);
+                _context.SaveChanges();
 
                 return Ok(new { success = true });
             }
             catch (Exception ex)
             {
                 return BadRequest(new { success = false, message = ex.Message });
+            }
+        }
+
+
+        // GET: api/ProductAPI/{id}
+        [HttpGet("{id}")]
+        public async Task<ActionResult<SanPham>> GetProduct(string id)
+        {
+            try
+            {
+                var product = await _context.SanPhams
+                    .Include(p => p.Roms)
+                    .Include(p => p.MauSacs)
+                    .Include(p => p.AnhSanPhams)
+                    .Include(p => p.ChiTietGioHangs)
+                    .Include(p => p.ChiTietHoaDonBans)
+                    .FirstOrDefaultAsync(p => p.MaSanPham == id);
+
+                if (product == null)
+                {
+                    return NotFound($"Không tìm thấy sản phẩm với mã: {id}");
+                }
+
+                // Chuyển đổi dữ liệu sang dạng phù hợp để trả về
+                var result = new
+                {
+                    maSanPham = product.MaSanPham,
+                    tenSanPham = product.TenSanPham,
+                    anhDaiDien = product.AnhDaiDien,
+                    thoiGianBaoHanh = product.ThoiGianBaoHanh,
+                    soLuongTonKho = product.SoLuongTonKho,
+                    donGiaBanGoc = product.DonGiaBanGoc,
+                    donGiaBanRa = product.DonGiaBanRa,
+                    khuyenMai = product.KhuyenMai,
+                    danhBa = product.DanhBa,
+                    denFlash = product.DenFlash,
+                    congNgheManHinh = product.CongNgheManHinh,
+                    doSangToiDa = product.DoSangToiDa,
+                    loaiPin = product.LoaiPin,
+                    baoMatNangCao = product.BaoMatNangCao,
+                    ghiAmMacDinh = product.GhiAmMacDinh,
+                    jackTaiNghe = product.JackTaiNghe,
+                    mangDiDong = product.MangDiDong,
+                    sim = product.Sim,
+                    maHang = product.MaHang,
+                    manHinh = product.ManHinh,
+                    pin = product.Pin,
+                    camera = product.Camera,
+                    kichThuoc = product.KichThuoc,
+                    chip = product.Chip,
+                    ram = product.Ram,
+                    roms = product.Roms.Select(r => new
+                    {
+                        maRom = r.MaRom,
+                        thongSo = r.ThongSo,
+                        gia = r.Gia,
+                        maSanPham = r.MaSanPham
+                    }).ToList(),
+                    mausacs = product.MauSacs.Select(m => new
+                    {
+                        maMau = m.MaMau,
+                        tenMau = m.TenMau,
+                        maSanPham = m.MaSanPham
+                    }).ToList(),
+                    anhSanPhams = product.AnhSanPhams.Select(a => new
+                    {
+                        tenFile = a.TenFile,
+                        maMau = a.MaMau,
+                        maSanPham = a.MaSanPham
+                    }).ToList()
+                };
+
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Internal server error: {ex.Message}");
+            }
+        }
+
+        // PUT: api/ProductAPI/{id}
+        [HttpPut("{id}")]
+        public async Task<IActionResult> UpdateProduct(string id, SanPham sanPham)
+        {
+            if (id != sanPham.MaSanPham)
+            {
+                return BadRequest();
+            }
+
+            try
+            {
+                // Xóa các ROM, màu sắc và ảnh cũ
+                var existingRoms = await _context.Roms.Where(r => r.MaSanPham == id).ToListAsync();
+                var existingMausacs = await _context.MauSacs.Where(m => m.MaSanPham == id).ToListAsync();
+                var existingAnhs = await _context.AnhSanPhams.Where(a => a.MaSanPham == id).ToListAsync();
+
+                _context.Roms.RemoveRange(existingRoms);
+                _context.MauSacs.RemoveRange(existingMausacs);
+                _context.AnhSanPhams.RemoveRange(existingAnhs);
+
+                // Cập nhật thông tin sản phẩm
+                _context.Entry(sanPham).State = EntityState.Modified;
+
+                // Thêm ROM, màu sắc và ảnh mới
+                if (sanPham.Roms != null)
+                    _context.Roms.AddRange(sanPham.Roms);
+                if (sanPham.MauSacs != null)
+                    _context.MauSacs.AddRange(sanPham.MauSacs);
+                if (sanPham.AnhSanPhams != null)
+                    _context.AnhSanPhams.AddRange(sanPham.AnhSanPhams);
+
+                await _context.SaveChangesAsync();
+                return NoContent();
+            }
+            catch (DbUpdateConcurrencyException)
+            {
+                if (!ProductExists(id))
+                {
+                    return NotFound();
+                }
+                throw;
+            }
+        }
+
+        private bool ProductExists(string id)
+        {
+            return _context.SanPhams.Any(e => e.MaSanPham == id);
+        }
+
+        [HttpPost("UploadImage")]
+        public async Task<IActionResult> UploadImage(IFormFile file)
+        {
+            try
+            {
+                if (file == null || file.Length == 0)
+                    return BadRequest("No file uploaded");
+
+                // Đường dẫn tới thư mục lưu ảnh
+                string solutionDirectory = Directory.GetParent(Directory.GetCurrentDirectory()).FullName;
+
+                string uploadsFolder = Path.Combine(solutionDirectory, "WebBanDienThoai.MVC", "wwwroot", "PhoneImages", "Images");
+
+                Console.WriteLine($"Upload Folder Path: {uploadsFolder}");
+                // Tạo tên file độc nhất
+                string uniqueFileName = Guid.NewGuid().ToString() + "_" + file.FileName;
+
+                // Đường dẫn đầy đủ
+                string filePath = Path.Combine(uploadsFolder, uniqueFileName);
+
+                // Đảm bảo thư mục tồn tại
+                if (!Directory.Exists(uploadsFolder))
+                    Directory.CreateDirectory(uploadsFolder);
+
+                // Lưu file
+                using (var fileStream = new FileStream(filePath, FileMode.Create))
+                {
+                    await file.CopyToAsync(fileStream);
+                }
+
+                return Ok(new { fileName = uniqueFileName });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Internal server error: {ex}");
             }
         }
 

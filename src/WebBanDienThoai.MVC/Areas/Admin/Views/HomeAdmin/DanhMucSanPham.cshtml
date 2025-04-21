@@ -449,7 +449,7 @@
                     formData.append('maSanPham', maSanPham);
                     formData.append('maMau', maMau);
 
-                    const promise = fetch('https://localhost:7145/api/ProductAPI/UploadImage', {
+                    const promise = fetch('https://localhost:7145/api/SanPhamAPI/UploadImage', {
                         method: 'POST',
                         body: formData
                     }).then(response => {
@@ -594,7 +594,7 @@
         formData.append('file', file);
 
         try {
-            const response = await fetch('https://localhost:7145/api/ProductAPI/UploadImage', {
+            const response = await fetch('https://localhost:7145/api/SanPhamAPI/UploadImage', {
                 method: 'POST',
                 body: formData
             });
@@ -1028,7 +1028,7 @@
     }
     async function editProduct(maSanPham) {
         try {
-            const response = await fetch(`https://localhost:7145/api/ProductAPI/${maSanPham}`);
+            const response = await fetch(`https://localhost:7145/api/SanPhamAPI/${maSanPham}`);
             if (!response.ok) {
                 const errorText = await response.text();
                 throw new Error(`Failed to fetch product data: ${errorText}`);
