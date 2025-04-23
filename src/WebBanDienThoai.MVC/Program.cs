@@ -5,6 +5,8 @@ using Microsoft.AspNetCore.Authentication;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.SignalR;
 using BTLW_BDT.Hubs;
+using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.Authentication.Google;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -32,7 +34,18 @@ builder.Services.AddSession(options =>
     options.Cookie.IsEssential = true;              // Cookie là cần thiết
 });
 
+builder.Services.AddAuthentication(options =>
+{
+    options.DefaultAuthenticateScheme = CookieAuthenticationDefaults.AuthenticationScheme;
+    options.DefaultSignInScheme = CookieAuthenticationDefaults.AuthenticationScheme;
+    options.DefaultChallengeScheme = CookieAuthenticationDefaults.AuthenticationScheme;
 
+
+}).AddCookie().AddGoogle(GoogleDefaults.AuthenticationScheme, options =>
+{
+    options.ClientId = builder.Configuration.GetSection("GoogleKeys:ClientId").Value;
+    options.ClientSecret = builder.Configuration.GetSection("GoogleKeys:ClientSecret").Value;
+});
 
 // Đăng ký IHttpContextAccessor
 builder.Services.AddHttpContextAccessor();

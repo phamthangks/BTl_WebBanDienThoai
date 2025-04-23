@@ -11,19 +11,22 @@ using Microsoft.EntityFrameworkCore;
 using System.Net.Http;
 using static System.Runtime.InteropServices.JavaScript.JSType;
 using BTLW_BDT.Models.Api;
+using Microsoft.AspNetCore.Authentication.Google;
+using Microsoft.AspNetCore.Authentication;
+using System.Security.Claims;
 
 namespace BTLW_BDT.Controllers
 {
     public class AccessController : Controller
     {
         //BtlLtwQlbdtContext db = new BtlLtwQlbdtContext();
-        //private readonly BtlLtwQlbdtContext db;
-   
-        //public AccessController(BtlLtwQlbdtContext context)
-        //{
-        //    db = context;
+        private readonly BtlLtwQlbdtContext db;
 
-        //}
+        public AccessController(BtlLtwQlbdtContext context)
+        {
+            db = context;
+
+        }
 
         [HttpGet]
         public IActionResult Login()
@@ -104,6 +107,120 @@ namespace BTLW_BDT.Controllers
             
             // Redirect về trang login
             return RedirectToAction("Login", "Access");
+        }
+
+        public async Task LoginByGoogle()
+        {
+            // Use Google authentication scheme for challenge
+            await HttpContext.ChallengeAsync(GoogleDefaults.AuthenticationScheme,
+                new AuthenticationProperties
+                {
+                    RedirectUri = Url.Action("GoogleResponse")
+                });
+        }
+        public async Task<IActionResult> GoogleResponse()
+        {
+
+            // Authenticate using Google scheme
+            var result = await HttpContext.AuthenticateAsync(GoogleDefaults.AuthenticationScheme);
+
+            if (!result.Succeeded)
+            {
+                //Nếu xác thực ko thành công quay về trang Login
+                return RedirectToAction("Login");
+            }
+
+            var claims = result.Principal.Identities.FirstOrDefault().Claims.Select(claim => new
+            {
+                claim.Issuer,
+                claim.OriginalIssuer,
+                claim.Type,
+                claim.Value
+            });
+            var email = claims.FirstOrDefault(c => c.Type == ClaimTypes.Email)?.Value;
+            var name = claims.FirstOrDefault(c => c.Type == ClaimTypes.GivenName)?.Value;
+            string emailName = email.Split('@')[0];
+            //return Json(claims);
+
+
+            // Check email có tồn tại không
+            var existingUser = await db.KhachHangs.FirstOrDefaultAsync(u => u.Email == email);
+            // Kiểm tra trùng tên đăng nhập
+            var existingAccount = db.TaiKhoans.FirstOrDefault(x => x.TenDangNhap == emailName);
+
+            if (existingUser == null && existingAccount == null)
+            {
+
+                var khachHang = new KhachHang
+                {
+                    MaKhachHang = MyUtil.GenerateRamdomKey(),
+                    TenKhachHang = name,
+                    Email = email,
+                    TenDangNhap = emailName,
+                };
+
+                // //nếu user ko tồn tại trong db thì tạo user mới với password hashed mặc định 1-9
+                string passwordDefault = "123456789";
+                string hashedPassword = passwordDefault.ToSHA256Hash("MySaltKey");
+                var taiKhoan = new TaiKhoan
+                {
+                    TenDangNhap = emailName,
+                    MatKhau = hashedPassword,
+                    LoaiTaiKhoan = "customer"
+                };
+                // Set session values
+                HttpContext.Session.SetString("Username", khachHang.TenDangNhap);
+                HttpContext.Session.SetString("HoTen", khachHang.TenKhachHang);
+                HttpContext.Session.SetString("Email", khachHang.Email);
+
+                db.KhachHangs.Add(khachHang);
+                db.TaiKhoans.Add(taiKhoan);
+                db.SaveChanges();
+
+                return RedirectToAction("Index", "Home");
+
+
+            }
+            else
+            {
+
+                // Xử lý đăng nhập cho khách hàng
+                var userInfo = (from tk in db.TaiKhoans
+                                join kh in db.KhachHangs on tk.TenDangNhap equals kh.TenDangNhap
+                                where tk.TenDangNhap == emailName
+                                select new
+                                {
+                                    tk.TenDangNhap,
+                                    kh.AnhDaiDien,
+                                    kh.MaKhachHang,
+                                    kh.TenKhachHang,
+                                    kh.NgaySinh,
+                                    kh.SoDienThoai,
+                                    kh.DiaChi,
+                                    kh.Email,
+                                    kh.GhiChu
+                                }).FirstOrDefault();
+
+                if (userInfo != null)
+                {
+                    HttpContext.Session.SetString("Username", userInfo.TenDangNhap);
+                    HttpContext.Session.SetString("MaKhachHang", userInfo.MaKhachHang);
+                    HttpContext.Session.SetString("HoTen", userInfo.TenKhachHang);
+                    //HttpContext.Session.SetString("NgaySinh", $"{userInfo.NgaySinh}");
+                    //HttpContext.Session.SetString("SoDienThoai", userInfo.SoDienThoai);
+                    //HttpContext.Session.SetString("DiaChi", userInfo.DiaChi);
+                    //HttpContext.Session.SetString("Email", userInfo.Email);
+                    //HttpContext.Session.SetString("GhiChu", userInfo.GhiChu ?? "");
+                    HttpContext.Session.SetString("Avatar", Url.Content("~/Images/Customer/" + userInfo.AnhDaiDien));
+                    HttpContext.Session.SetString("Role", "Customer");
+
+                    return RedirectToAction("Index", "Home");
+                }
+
+            }
+
+            return RedirectToAction("Login");
+
         }
 
         [HttpGet]

@@ -10,6 +10,7 @@
     <PackageReference Include="Drapper" Version="1.1.0" />
     <PackageReference Include="iTextSharp" Version="5.5.13.4" />
     <PackageReference Include="jQuery" Version="3.7.1" />
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.Google" Version="8.0.11" />
     <PackageReference Include="Microsoft.AspNetCore.SignalR.Client" Version="9.0.0" />
     <PackageReference Include="Microsoft.AspNetCore.SignalR.Common" Version="9.0.0" />
     <PackageReference Include="Microsoft.Data.SqlClient" Version="5.2.2" />
