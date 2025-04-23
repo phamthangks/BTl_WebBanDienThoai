@@ -8,36 +8,34 @@ namespace WebBanDienThoai.API.Helpers
         {
             try
             {
-                // Tạo tên file duy nhất bằng cách sử dụng Guid kết hợp với tên file gốc
-                string uniqueFileName = Guid.NewGuid().ToString() + "_" + Hinh.FileName;
+                if (Hinh == null || Hinh.Length == 0)
+                    return string.Empty;
 
-                // Đường dẫn lưu file
-                //var fullPath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "Images", folder, uniqueFileName);
+                string uniqueFileName = Guid.NewGuid().ToString() + "_" + Path.GetFileName(Hinh.FileName);
 
                 string solutionDirectory = Directory.GetParent(Directory.GetCurrentDirectory()).FullName;
-
                 string fullPath = Path.Combine(solutionDirectory, "WebBanDienThoai.MVC", "wwwroot", "Images", folder, uniqueFileName);
-                // Tạo thư mục nếu chưa tồn tại
-                var directory = Path.GetDirectoryName(fullPath);
+
+                string directory = Path.GetDirectoryName(fullPath);
                 if (!Directory.Exists(directory))
                 {
                     Directory.CreateDirectory(directory);
                 }
 
-                // Lưu file vào thư mục
-                using (var myfile = new FileStream(fullPath, FileMode.Create))
+                using (var stream = new FileStream(fullPath, FileMode.Create))
                 {
-                    Hinh.CopyTo(myfile);
+                    Hinh.CopyTo(stream);
                 }
 
-                return uniqueFileName; // Trả về tên file duy nhất
+                return uniqueFileName;
             }
             catch (Exception ex)
             {
-                // Xử lý lỗi nếu cần, ghi log hoặc thông báo lỗi
+                // Optionally log the exception here: ex.Message
                 return string.Empty;
             }
         }
+
 
         public static string GenerateRamdomKey(int length = 5)
         {

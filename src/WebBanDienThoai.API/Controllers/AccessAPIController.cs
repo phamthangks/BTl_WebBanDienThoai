@@ -56,7 +56,7 @@ namespace WebBanDienThoai.API.Controllers
                                     kh.GhiChu,
                                     kh.AnhDaiDien,
                                     Role = "Customer",
-                                    AvatarUrl = Url.Content("../WebBanDienThoai.MVC/wwwroot/Images/Images/Customer/" + kh.AnhDaiDien)
+                                    AvatarUrl = Url.Content("~/Images/Customer/" + kh.AnhDaiDien)
                                 }).FirstOrDefault();
 
                 return Ok(userInfo);

@@ -1,9 +1,11 @@
 ﻿using BTLW_BDT.Helpers;
 using BTLW_BDT.Models;
+using BTLW_BDT.Models.Api;
 using BTLW_BDT.ViewModels;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
+using System.Net.Http.Headers;
 using System.Text.RegularExpressions;
 
 namespace BTLW_BDT.Controllers
@@ -21,91 +23,87 @@ namespace BTLW_BDT.Controllers
         [HttpGet]
         public IActionResult Profile()
         {
-            var model = new KhachHang
+            var khachHang = new KhachHang
             {
-                MaKhachHang = HttpContext.Session.GetString("MaKhachHang"),
                 TenKhachHang = HttpContext.Session.GetString("HoTen"),
-                NgaySinh = DateOnly.Parse(HttpContext.Session.GetString("NgaySinh") ?? DateOnly.MinValue.ToString()),
+                //MaKhachHang = HttpContext.Session.GetString("MaKhachHang"),
+                //AnhDaiDien = HttpContext.Session.GetString("MaKhachHang"),
                 SoDienThoai = HttpContext.Session.GetString("SoDienThoai"),
                 DiaChi = HttpContext.Session.GetString("DiaChi"),
                 Email = HttpContext.Session.GetString("Email"),
-                GhiChu = HttpContext.Session.GetString("GhiChu"),
-                AnhDaiDien = HttpContext.Session.GetString("Avatar")
+                GhiChu = HttpContext.Session.GetString("GhiChu")
             };
-            return View(model);
+
+            var ngaySinhStr = HttpContext.Session.GetString("NgaySinh");
+            if (DateOnly.TryParse(ngaySinhStr, out var ngaySinh))
+                khachHang.NgaySinh = ngaySinh;
+
+            var avatar = HttpContext.Session.GetString("Avatar");
+            if (!string.IsNullOrEmpty(avatar))
+                khachHang.AnhDaiDien = avatar;
+
+            return View(khachHang);
         }
+
 
         // Action lưu thông tin chỉnh sửa của khách hàng
         [HttpPost]
         public async Task<IActionResult> UpdateProfile(KhachHang khachHang, IFormFile? imageFile)
         {
-            if (ModelState.IsValid)
+            if (!ModelState.IsValid)
+                return View("Profile", khachHang);
+
+            using var content = new MultipartFormDataContent();
+            content.Add(new StringContent(khachHang.MaKhachHang.ToString()), "MaKhachHang");
+            content.Add(new StringContent(khachHang.TenKhachHang), "TenKhachHang");
+            content.Add(new StringContent(khachHang.NgaySinh.ToString()), "NgaySinh");
+            content.Add(new StringContent(khachHang.SoDienThoai), "SoDienThoai");
+            content.Add(new StringContent(khachHang.DiaChi), "DiaChi");
+            //content.Add(new StringContent(khachHang.AnhDaiDien), "AnhDaiDien");
+            content.Add(new StringContent(khachHang.Email), "Email");
+            content.Add(new StringContent(khachHang.GhiChu ?? ""), "GhiChu");
+
+            if (imageFile != null)
             {
-                var existingCustomer = await _context.KhachHangs.FindAsync(khachHang.MaKhachHang);
-                if (existingCustomer != null)
-                {
-                    // Validate số điện thoại
-                    var phoneRegex = new Regex(@"^(0)[0-9]{9}$");
-                    if (!phoneRegex.IsMatch(khachHang.SoDienThoai))
-                    {
-                        TempData["ErrorMessage"] = "Số điện thoại không hợp lệ!";
-                        return RedirectToAction("Profile");
-                    }
-
-                    // Validate email
-                    var emailRegex = new Regex(@"^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$");
-                    if (!emailRegex.IsMatch(khachHang.Email))
-                    {
-                        TempData["ErrorMessage"] = "Email không hợp lệ!";
-                        return RedirectToAction("Profile");
-                    }
-
-                    // Cập nhật thông tin
-                    existingCustomer.TenKhachHang = khachHang.TenKhachHang;
-                    existingCustomer.NgaySinh = khachHang.NgaySinh;
-                    existingCustomer.SoDienThoai = khachHang.SoDienThoai;
-                    existingCustomer.DiaChi = khachHang.DiaChi;
-                    existingCustomer.Email = khachHang.Email;
-                    existingCustomer.GhiChu = khachHang.GhiChu;
-
-                    // Xử lý upload ảnh nếu có
-                    if (imageFile != null && imageFile.Length > 0)
-                    {
-                        var allowedExtensions = new[] { ".jpg", ".jpeg", ".png" };
-                        var extension = Path.GetExtension(imageFile.FileName).ToLowerInvariant();
-                        
-                        if (!allowedExtensions.Contains(extension))
-                        {
-                            TempData["ErrorMessage"] = "Chỉ chấp nhận file ảnh .jpg, .jpeg hoặc .png!";
-                            return RedirectToAction("Profile");
-                        }
-
-                        if (imageFile.Length > 5 * 1024 * 1024)
-                        {
-                            TempData["ErrorMessage"] = "Kích thước ảnh không được vượt quá 5MB!";
-                            return RedirectToAction("Profile");
-                        }
-
-                        string newAvatarPath = MyUtil.UploadHinh(imageFile, "Customer");
-                        existingCustomer.AnhDaiDien = newAvatarPath;
-                        HttpContext.Session.SetString("Avatar", Url.Content("~/Images/Customer/" + newAvatarPath));
-                    }
-
-                    await _context.SaveChangesAsync();
-
-                    // Cập nhật session
-                    HttpContext.Session.SetString("HoTen", existingCustomer.TenKhachHang);
-                    HttpContext.Session.SetString("NgaySinh", existingCustomer.NgaySinh.ToString());
-                    HttpContext.Session.SetString("SoDienThoai", existingCustomer.SoDienThoai);
-                    HttpContext.Session.SetString("DiaChi", existingCustomer.DiaChi);
-                    HttpContext.Session.SetString("Email", existingCustomer.Email);
-                    HttpContext.Session.SetString("GhiChu", existingCustomer.GhiChu ?? "");
-
-                    TempData["SuccessMessage"] = "Cập nhật thông tin thành công!";
-                    return RedirectToAction("Profile");
-                }
+                var stream = imageFile.OpenReadStream();
+                var fileContent = new StreamContent(stream);
+                fileContent.Headers.ContentType = new MediaTypeHeaderValue(imageFile.ContentType);
+                content.Add(fileContent, "imageFile", imageFile.FileName);
             }
-            return View("Profile", khachHang);
+
+            var client = new HttpClient();
+            client.BaseAddress = new Uri("https://localhost:7145/");
+
+            var response = await client.PostAsync("api/UserAPI/update-profile", content);
+
+            if (response.IsSuccessStatusCode)
+            {
+                var result = await response.Content.ReadFromJsonAsync<ApiProfileResult>();
+                var data = result?.Data;
+
+                if (data != null)
+                {
+                    HttpContext.Session.SetString("HoTen", data.TenKhachHang);
+                    //HttpContext.Session.SetString("MaKhachHang", data.MaKhachHang);
+                    HttpContext.Session.SetString("NgaySinh", data.NgaySinh.ToString());
+                    HttpContext.Session.SetString("SoDienThoai", data.SoDienThoai);
+                    HttpContext.Session.SetString("DiaChi", data.DiaChi);
+                    HttpContext.Session.SetString("Email", data.Email);
+                    HttpContext.Session.SetString("GhiChu", data.GhiChu ?? "");
+
+                    if (!string.IsNullOrEmpty(data.AnhDaiDien))
+                        HttpContext.Session.SetString("Avatar", Url.Content("~/Images/Customer/" + data.AnhDaiDien));
+                }
+
+                TempData["SuccessMessage"] = result?.Message ?? "Cập nhật thành công!";
+            }
+            else
+            {
+                var error = await response.Content.ReadFromJsonAsync<ApiErrorResponse>();
+                TempData["ErrorMessage"] = error?.Message ?? "Có lỗi xảy ra!";
+            }
+
+            return RedirectToAction("Profile");
         }
 
         [HttpGet]

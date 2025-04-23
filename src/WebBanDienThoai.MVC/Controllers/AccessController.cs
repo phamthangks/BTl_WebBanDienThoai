@@ -59,7 +59,7 @@ namespace BTLW_BDT.Controllers
                     HttpContext.Session.SetString("GhiChu", json.GetProperty("ghiChu").GetString() ?? "");
                     HttpContext.Session.SetString("AnhDaiDien", json.GetProperty("anhDaiDien").GetString() ?? "");
                     HttpContext.Session.SetString("Role", role);
-                    HttpContext.Session.SetString("AvatarUrl", json.GetProperty("avatarUrl").GetString() ?? "");
+                    HttpContext.Session.SetString("Avatar", json.GetProperty("avatarUrl").GetString() ?? "");
               
                     if (role == "Customer")
                     {
