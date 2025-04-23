@@ -8,6 +8,8 @@ using System.Net.Mail;
 using System.Net;
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
+using System.Net.Http;
+using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace BTLW_BDT.Controllers
 {
@@ -151,6 +153,8 @@ namespace BTLW_BDT.Controllers
                     }
                     else
                     {
+                        var error1 = await response.Content.ReadFromJsonAsync<ApiErrorResponse>();
+                        ModelState.AddModelError(string.Empty, error1?.Message ?? "Lỗi đăng ký:.");
                         var error = await response.Content.ReadAsStringAsync();
                         ViewBag.ErrorMessage = "Lỗi đăng ký: " + error;
                         return View(model);
@@ -168,38 +172,22 @@ namespace BTLW_BDT.Controllers
         }
 
         [HttpPost]
-        public IActionResult ForgotPassword(ForgotPasswordVM model)
+        public async Task<IActionResult> ForgotPassword(ForgotPasswordVM model)
         {
             if (!ModelState.IsValid)
-            {
                 return View(model);
-            }
+            var client = new HttpClient();
+            client.BaseAddress = new Uri("https://localhost:7145/");
+            var response = await client.PostAsJsonAsync("api/AccessAPI/request-reset", model);
 
-            var user = db.KhachHangs.SingleOrDefault(x => x.Email == model.Email);
-            if (user != null)
+            if (response.IsSuccessStatusCode)
             {
-                // Tạo mã xác thực
-                var code = GenerateResetCode();
-
-               
-               
-
-                // Lưu mã xác thực vào cơ sở dữ liệu
-                user.ResetCode = code;
-                user.ResetCodeExpiry = DateTime.Now.AddMinutes(5);
-
-                db.SaveChanges();
-
-                // Gửi mã qua email 
-                SendResetCodeEmail(model.Email, code);
-
-                // Chuyển email vào TempData để dùng ở bước kiểm tra mã
                 TempData["Email"] = model.Email;
-
                 return RedirectToAction("CheckCode");
             }
 
-            ModelState.AddModelError(string.Empty, "Email không tồn tại.");
+            var error = await response.Content.ReadFromJsonAsync<ApiErrorResponse>();
+            ModelState.AddModelError(string.Empty, error?.Message ?? "Đã xảy ra lỗi.");
             return View(model);
         }
 
@@ -217,38 +205,23 @@ namespace BTLW_BDT.Controllers
         }
 
         [HttpPost]
-        public IActionResult CheckCode(CheckCodeVM model)
+        public async Task<IActionResult> CheckCode(CheckCodeVM model)
         {
             if (!ModelState.IsValid)
-            {
                 return View(model);
-            }
+            var client = new HttpClient();
+            client.BaseAddress = new Uri("https://localhost:7145/");
+            var response = await client.PostAsJsonAsync("api/AccessAPI/check-code", model);
 
-            var user = db.KhachHangs.SingleOrDefault(x =>
-                x.Email == model.Email &&
-                x.ResetCode.ToString() == model.Code);
-
-            if (user != null)
+            if (response.IsSuccessStatusCode)
             {
-                // Kiểm tra thời gian hết hạn
-                if (user.ResetCodeExpiry.Value > DateTime.Now)
-                {
-                    TempData["Email"] = model.Email;
-                    return RedirectToAction("NewPassword");
-                }
-                else
-                {
-                    // Mã đã hết hạn
-                    user.ResetCode = null;
-                    user.ResetCodeExpiry = null;
-                    db.SaveChanges();
-
-                    ModelState.AddModelError(string.Empty, "Mã xác thực đã hết hạn. Vui lòng yêu cầu mã mới.");
-                    return View(model);
-                }
+                TempData["Email"] = model.Email;
+                return RedirectToAction("NewPassword");
             }
 
-            ModelState.AddModelError(string.Empty, "Mã xác thực không hợp lệ");
+            var error = await response.Content.ReadFromJsonAsync<ApiErrorResponse>();
+            ModelState.AddModelError(string.Empty, error?.Message ?? "Xác thực thất bại.");
+
             return View(model);
         }
 
@@ -267,65 +240,64 @@ namespace BTLW_BDT.Controllers
         }
 
         [HttpPost]
-        public IActionResult NewPassword(NewPasswordVM model)
+        public async Task<IActionResult> NewPassword(NewPasswordVM model)
         {
             if (!ModelState.IsValid)
-            {
                 return View(model);
-            }
 
-            var user = db.KhachHangs.SingleOrDefault(x => x.Email == model.Email);
-            if (user != null)
+            var client = new HttpClient();
+            client.BaseAddress = new Uri("https://localhost:7145/");
+            var response = await client.PostAsJsonAsync("api/AccessAPI/new-password", model);
+
+            if (response.IsSuccessStatusCode)
             {
-                var account = db.TaiKhoans.SingleOrDefault(x => x.TenDangNhap == user.TenDangNhap);
-                if (account != null)
-                {
-                    account.MatKhau = model.NewPassword.ToSHA256Hash("MySaltKey");
-                    user.ResetCode = null; // Xóa mã sau khi dùng
-                    db.SaveChanges();
-
-                    TempData["SuccessMessage"] = "Đặt lại mật khẩu thành công!";
-                    return RedirectToAction("Login");
-                }
+                TempData["SuccessMessage"] = "Đặt lại mật khẩu thành công!";
+                return RedirectToAction("Login");
             }
 
-            TempData["ErrorMessage"] = "Đã xảy ra lỗi. Vui lòng thử lại.";
+            var error = await response.Content.ReadFromJsonAsync<ApiErrorResponse>();
+            TempData["ErrorMessage"] = error?.Message ?? "Lỗi không xác định.";
             return RedirectToAction("ForgotPassword");
         }
 
-        private void SendResetCodeEmail(string email, int code)
+        private class ApiErrorResponse
         {
-            var fromAddress = new MailAddress("thangdepzai38@gmail.com", "Admin");
-            var toAddress = new MailAddress(email);
-            const string fromPassword = "iflx rhxm wyjf hlbw";
-            const string subject = "Reset mật khẩu - Mã xác thực";
-            string body = $"Mã xác thực của bạn là: {code}";
-
-            var smtp = new SmtpClient
-            {
-                Host = "smtp.gmail.com",
-                Port = 587,
-                EnableSsl = true,
-                DeliveryMethod = SmtpDeliveryMethod.Network,
-                UseDefaultCredentials = false,
-                Credentials = new NetworkCredential(fromAddress.Address, fromPassword)
-            };
-
-            using (var message = new MailMessage(fromAddress, toAddress)
-            {
-                Subject = subject,
-                Body = body
-            })
-            {
-                smtp.Send(message);
-            }
+            public string? Message { get; internal set; }
         }
 
-        private int GenerateResetCode()
-        {
-            var rng = new Random();
-            return rng.Next(100000, 999999); // Tạo mã ngẫu nhiên 6 chữ số
-        }
+        //private void SendResetCodeEmail(string email, int code)
+        //{
+        //    var fromAddress = new MailAddress("thangdepzai38@gmail.com", "Admin");
+        //    var toAddress = new MailAddress(email);
+        //    const string fromPassword = "wxpl wnto nnqf uyyx";
+        //    const string subject = "Reset mật khẩu - Mã xác thực";
+        //    string body = $"Mã xác thực của bạn là: {code}";
+
+        //    var smtp = new SmtpClient
+        //    {
+        //        Host = "smtp.gmail.com",
+        //        Port = 587,
+        //        EnableSsl = true,
+        //        DeliveryMethod = SmtpDeliveryMethod.Network,
+        //        UseDefaultCredentials = false,
+        //        Credentials = new NetworkCredential(fromAddress.Address, fromPassword)
+        //    };
+
+        //    using (var message = new MailMessage(fromAddress, toAddress)
+        //    {
+        //        Subject = subject,
+        //        Body = body
+        //    })
+        //    {
+        //        smtp.Send(message);
+        //    }
+        //}
+
+        //private int GenerateResetCode()
+        //{
+        //    var rng = new Random();
+        //    return rng.Next(100000, 999999); // Tạo mã ngẫu nhiên 6 chữ số
+        //}
 
     }
 }

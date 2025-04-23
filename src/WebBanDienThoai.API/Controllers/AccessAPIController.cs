@@ -2,6 +2,8 @@
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using System.Net.Mail;
+using System.Net;
 using WebBanDienThoai.API.Helpers;
 using WebBanDienThoai.API.ViewModels;
 
@@ -148,6 +150,108 @@ namespace WebBanDienThoai.API.Controllers
                 email = khachHang.Email,
                 role = "Customer"
             });
+        }
+
+        [HttpPost("request-reset")]
+        public IActionResult RequestReset([FromBody] ForgotPasswordVM model)
+        {
+            if (!ModelState.IsValid)
+                return BadRequest(new { message = "Dữ liệu không hợp lệ" });
+
+            var user = db.KhachHangs.SingleOrDefault(x => x.Email == model.Email);
+            if (user != null)
+            {
+                var code = new Random().Next(100000, 999999);
+                user.ResetCode = code;
+                user.ResetCodeExpiry = DateTime.Now.AddMinutes(5);
+                db.SaveChanges();
+
+                SendResetCodeEmail(user.Email, code);
+
+                return Ok(new { message = "Đã gửi mã xác thực", email = user.Email });
+            }
+
+            return NotFound(new { message = "Email không tồn tại." });
+        }
+
+        private void SendResetCodeEmail(string email, int code)
+        {
+            var fromAddress = new MailAddress("thangdepzai38@gmail.com", "Admin");
+            var toAddress = new MailAddress(email);
+            const string fromPassword = "wxpl wnto nnqf uyyx";
+            const string subject = "Reset mật khẩu - Mã xác thực";
+            string body = $"Mã xác thực của bạn là: {code}";
+
+            var smtp = new SmtpClient
+            {
+                Host = "smtp.gmail.com",
+                Port = 587,
+                EnableSsl = true,
+                DeliveryMethod = SmtpDeliveryMethod.Network,
+                UseDefaultCredentials = false,
+                Credentials = new NetworkCredential(fromAddress.Address, fromPassword)
+            };
+
+            using (var message = new MailMessage(fromAddress, toAddress)
+            {
+                Subject = subject,
+                Body = body
+            })
+            {
+                smtp.Send(message);
+            }
+        }
+
+        [HttpPost("check-code")]
+        public IActionResult CheckCode([FromBody] CheckCodeVM model)
+        {
+            if (!ModelState.IsValid)
+                return BadRequest(new { message = "Dữ liệu không hợp lệ." });
+
+            var user = db.KhachHangs.SingleOrDefault(x =>
+                x.Email == model.Email &&
+                x.ResetCode.ToString() == model.Code);
+
+            if (user != null)
+            {
+                if (user.ResetCodeExpiry.HasValue && user.ResetCodeExpiry.Value > DateTime.Now)
+                {
+                    return Ok(new { message = "Mã hợp lệ", email = model.Email });
+                }
+                else
+                {
+                    user.ResetCode = null;
+                    user.ResetCodeExpiry = null;
+                    db.SaveChanges();
+                    return BadRequest(new { message = "Mã xác thực đã hết hạn." });
+                }
+            }
+
+            return BadRequest(new { message = "Mã xác thực không hợp lệ." });
+        }
+
+        [HttpPost("new-password")]
+        public IActionResult NewPassword([FromBody] NewPasswordVM model)
+        {
+            if (!ModelState.IsValid)
+                return BadRequest(new { message = "Dữ liệu không hợp lệ." });
+
+            var user = db.KhachHangs.SingleOrDefault(x => x.Email == model.Email);
+            if (user != null)
+            {
+                var account = db.TaiKhoans.SingleOrDefault(x => x.TenDangNhap == user.TenDangNhap);
+                if (account != null)
+                {
+                    account.MatKhau = model.NewPassword.ToSHA256Hash("MySaltKey");
+                    user.ResetCode = null;
+                    user.ResetCodeExpiry = null;
+                    db.SaveChanges();
+
+                    return Ok(new { message = "Đặt lại mật khẩu thành công!" });
+                }
+            }
+
+            return BadRequest(new { message = "Đã xảy ra lỗi. Vui lòng thử lại." });
         }
     }
 }
