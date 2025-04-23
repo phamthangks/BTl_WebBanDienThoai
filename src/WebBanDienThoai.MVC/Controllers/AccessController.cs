@@ -49,7 +49,7 @@ namespace BTLW_BDT.Controllers
 
                     string role = json.GetProperty("role").GetString() ?? "";
 
-                    HttpContext.Session.SetString("TenDangNhap", json.GetProperty("tenDangNhap").GetString() ?? "");
+                    HttpContext.Session.SetString("Username", json.GetProperty("tenDangNhap").GetString() ?? "");
                     HttpContext.Session.SetString("NgaySinh", json.GetProperty("ngaySinh").GetDateTime().ToString("yyyy-MM-dd"));
                     HttpContext.Session.SetString("SoDienThoai", json.GetProperty("soDienThoai").GetString() ?? "");
                     HttpContext.Session.SetString("DiaChi", json.GetProperty("diaChi").GetString() ?? "");
