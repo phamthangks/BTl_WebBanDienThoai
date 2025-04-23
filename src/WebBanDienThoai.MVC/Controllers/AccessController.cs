@@ -6,6 +6,8 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.VisualStudio.Web.CodeGenerators.Mvc.Templates.BlazorIdentity.Pages;
 using System.Net.Mail;
 using System.Net;
+using System.Text.Json;
+using Microsoft.EntityFrameworkCore;
 
 namespace BTLW_BDT.Controllers
 {
@@ -33,96 +35,56 @@ namespace BTLW_BDT.Controllers
             }
         }
         [HttpPost]
-        public IActionResult Login(TaiKhoan user)
+        public async Task<IActionResult> Login(TaiKhoan model)
         {
-            if (HttpContext.Session.GetString("Username") == null)
+            using (var client = new HttpClient())
             {
-                string hashedPassword = user.MatKhau.ToSHA256Hash("MySaltKey");
-                
-                // Kiểm tra tài khoản tồn tại
-                var taiKhoan = db.TaiKhoans.FirstOrDefault(tk => 
-                    tk.TenDangNhap == user.TenDangNhap && 
-                    tk.MatKhau == hashedPassword);
+                client.BaseAddress = new Uri("https://localhost:7145/");
 
-                if (taiKhoan != null)
+                var response = await client.PostAsJsonAsync("api/AccessAPI/login", model);
+
+                if (response.IsSuccessStatusCode)
                 {
-                    if (taiKhoan.LoaiTaiKhoan == "customer")
-                    {
-                        // Xử lý đăng nhập cho khách hàng
-                        var userInfo = (from tk in db.TaiKhoans
-                                    join kh in db.KhachHangs on tk.TenDangNhap equals kh.TenDangNhap
-                                    where tk.TenDangNhap == user.TenDangNhap
-                                    select new
-                                    {
-                                        tk.TenDangNhap,
-                                        kh.AnhDaiDien,
-                                        kh.MaKhachHang,
-                                        kh.TenKhachHang,
-                                        kh.NgaySinh,
-                                        kh.SoDienThoai,
-                                        kh.DiaChi,
-                                        kh.Email,
-                                        kh.GhiChu
-                                    }).FirstOrDefault();
+                    var json = await response.Content.ReadFromJsonAsync<JsonElement>();
 
-                        if (userInfo != null)
-                        {
-                            HttpContext.Session.SetString("Username", userInfo.TenDangNhap);
-                            HttpContext.Session.SetString("MaKhachHang", userInfo.MaKhachHang);
-                            HttpContext.Session.SetString("HoTen", userInfo.TenKhachHang);
-                            HttpContext.Session.SetString("NgaySinh", $"{userInfo.NgaySinh}");
-                            HttpContext.Session.SetString("SoDienThoai", userInfo.SoDienThoai);
-                            HttpContext.Session.SetString("DiaChi", userInfo.DiaChi);
-                            HttpContext.Session.SetString("Email", userInfo.Email);
-                            HttpContext.Session.SetString("GhiChu", userInfo.GhiChu ?? "");
-                            HttpContext.Session.SetString("Avatar", Url.Content("~/Images/Customer/" + userInfo.AnhDaiDien));
-                            HttpContext.Session.SetString("Role", "Customer");
-                            
-                            return RedirectToAction("Index", "Home");
-                        }
+                    string role = json.GetProperty("role").GetString() ?? "";
+
+                    HttpContext.Session.SetString("TenDangNhap", json.GetProperty("tenDangNhap").GetString() ?? "");
+                    HttpContext.Session.SetString("NgaySinh", json.GetProperty("ngaySinh").GetDateTime().ToString("yyyy-MM-dd"));
+                    HttpContext.Session.SetString("SoDienThoai", json.GetProperty("soDienThoai").GetString() ?? "");
+                    HttpContext.Session.SetString("DiaChi", json.GetProperty("diaChi").GetString() ?? "");
+                    HttpContext.Session.SetString("GhiChu", json.GetProperty("ghiChu").GetString() ?? "");
+                    HttpContext.Session.SetString("AnhDaiDien", json.GetProperty("anhDaiDien").GetString() ?? "");
+                    HttpContext.Session.SetString("Role", role);
+                    HttpContext.Session.SetString("AvatarUrl", json.GetProperty("avatarUrl").GetString() ?? "");
+                    HttpContext.Session.SetString("Email", json.GetProperty("email").GetString() ?? "");
+                    if (role == "Customer")
+                    {
+                        HttpContext.Session.SetString("MaKhachHang", json.GetProperty("maKhachHang").GetString() ?? "");
+                        HttpContext.Session.SetString("HoTen", json.GetProperty("tenKhachHang").GetString() ?? "");
+                        return RedirectToAction("Index", "Home");
                     }
-                    else if (taiKhoan.LoaiTaiKhoan == "admin")
+                    else if (role == "Admin")
                     {
-                        // Xử lý đăng nhập cho admin
-                        var adminInfo = (from tk in db.TaiKhoans
-                                     join nv in db.NhanViens on tk.TenDangNhap equals nv.TenDangNhap
-                                     where tk.TenDangNhap == user.TenDangNhap
-                                     select new
-                                     {
-                                         tk.TenDangNhap,
-                                         nv.AnhDaiDien,
-                                         nv.MaNhanVien,
-                                         nv.TenNhanVien,
-                                         nv.NgaySinh,
-                                         nv.SoDienThoai,
-                                         nv.DiaChi,
-                                         nv.ChucVu,
-                                         nv.GhiChu
-                                     }).FirstOrDefault();
-
-                        if (adminInfo != null)
-                        {
-                            HttpContext.Session.SetString("Username", adminInfo.TenDangNhap);
-                            HttpContext.Session.SetString("MaNhanVien", adminInfo.MaNhanVien);
-                            HttpContext.Session.SetString("HoTen", adminInfo.TenNhanVien);
-                            HttpContext.Session.SetString("NgaySinh", $"{adminInfo.NgaySinh}");
-                            HttpContext.Session.SetString("SoDienThoai", adminInfo.SoDienThoai);
-                            HttpContext.Session.SetString("DiaChi", adminInfo.DiaChi);
-                            HttpContext.Session.SetString("ChucVu", adminInfo.ChucVu);
-                            HttpContext.Session.SetString("GhiChu", adminInfo.GhiChu ?? "");
-                            HttpContext.Session.SetString("Avatar", Url.Content("~/Images/Admin/" + adminInfo.AnhDaiDien));
-                            HttpContext.Session.SetString("Role", "Admin");
-
-                            return RedirectToAction("Index", "HomeAdmin", new { area = "Admin" });
-                        }
+                        HttpContext.Session.SetString("MaNhanVien", json.GetProperty("maNhanVien").GetString() ?? "");
+                        HttpContext.Session.SetString("TenNhanVien", json.GetProperty("tenNhanVien").GetString() ?? "");
+                        return RedirectToAction("Index", "HomeAdmin", new { area = "Admin" });
+                    }
+                    else
+                    {
+                        // Trường hợp role không hợp lệ
+                        ViewBag.ErrorMessage = "Loại tài khoản không hợp lệ.";
+                        return View();
                     }
                 }
-
-                ViewBag.ErrorMessage = "Tên đăng nhập hoặc mật khẩu không đúng.";
+                else
+                {
+                    ViewBag.ErrorMessage = "Tên đăng nhập hoặc mật khẩu không đúng.";
+                    return View();
+                }
             }
-
-            return View();
         }
+
 
         [HttpGet]
         public IActionResult Logout()
@@ -147,68 +109,58 @@ namespace BTLW_BDT.Controllers
         }
 
         [HttpPost]
-        public IActionResult Register(RegisterVM model, IFormFile Hinh)
+        public async Task<IActionResult> Register(RegisterVM model)
         {
-            if (ModelState.IsValid)
+            if (!ModelState.IsValid)
             {
-                // Kiểm tra trùng tên đăng nhập
-                var existingAccount = db.TaiKhoans.FirstOrDefault(x => x.TenDangNhap == model.TaiKhoan);
-                if (existingAccount != null)
-                {
-                    ModelState.AddModelError("TaiKhoan", "Tên đăng nhập đã tồn tại.");
-                    return View(model);
-                }
-
-
-                var khachHang = new KhachHang
-                {
-                    MaKhachHang = MyUtil.GenerateRamdomKey(),
-                    TenKhachHang = model.HoTen,
-                    NgaySinh = model.NgaySinh,
-                    SoDienThoai = model.DienThoai,
-                    DiaChi = model.DiaChi,
-                    Email = model.Email,
-                    TenDangNhap = model.TaiKhoan,
-                    // Thêm 2 trường tọa độ
-                    DiaChiLatitude = model.DiaChiLatitude,
-                    DiaChiLongitude = model.DiaChiLongitude
-                };
-
-
-                string hashedPassword = model.MatKhau.ToSHA256Hash("MySaltKey");
-                var taiKhoan = new TaiKhoan
-                {
-                    TenDangNhap = model.TaiKhoan,
-                    MatKhau = hashedPassword,
-                    LoaiTaiKhoan = "customer"
-                };
-
-
-                if (Hinh != null)
-                {
-                    khachHang.AnhDaiDien = MyUtil.UploadHinh(Hinh, "Customer");
-
-                }
-
-                db.KhachHangs.Add(khachHang);
-                db.TaiKhoans.Add(taiKhoan);
-                db.SaveChanges();
-
-                // Set session values
-                HttpContext.Session.SetString("Username", khachHang.TenDangNhap);
-                HttpContext.Session.SetString("HoTen", khachHang.TenKhachHang);
-                HttpContext.Session.SetString("NgaySinh", khachHang.NgaySinh.ToString());
-                HttpContext.Session.SetString("SoDienThoai", khachHang.SoDienThoai);
-                HttpContext.Session.SetString("DiaChi", khachHang.DiaChi);
-                HttpContext.Session.SetString("Email", khachHang.Email);
-                HttpContext.Session.SetString("GhiChu", khachHang.GhiChu ?? "");
-                HttpContext.Session.SetString("Avatar", Url.Content("~/Images/Customer/" + khachHang.AnhDaiDien));
-                HttpContext.Session.SetString("Role", "Customer");
-
-                return RedirectToAction("Index", "Home");
+                return View(model);
             }
-            return View(model);
+
+            using (var client = new HttpClient())
+            {
+                client.BaseAddress = new Uri("https://localhost:7145/");
+
+                using (var content = new MultipartFormDataContent())
+                {
+                    content.Add(new StringContent(model.TaiKhoan ?? ""), "TaiKhoan");
+                    content.Add(new StringContent(model.MatKhau ?? ""), "MatKhau");
+                    content.Add(new StringContent(model.HoTen ?? ""), "HoTen");
+                    content.Add(new StringContent(model.NgaySinh.ToString()), "NgaySinh");
+                    content.Add(new StringContent(model.DienThoai ?? ""), "DienThoai");
+                    content.Add(new StringContent(model.DiaChi ?? ""), "DiaChi");
+                    content.Add(new StringContent(model.Email ?? ""), "Email");
+                    content.Add(new StringContent(model.DiaChiLatitude?.ToString() ?? "0"), "DiaChiLatitude");
+                    content.Add(new StringContent(model.DiaChiLongitude?.ToString() ?? "0"), "DiaChiLongitude");
+                    content.Add(new StringContent(model.XacNhanMatKhau ?? ""), "XacNhanMatKhau");
+                    var response = await client.PostAsync("api/AccessAPI/register", content);
+
+                    if (response.IsSuccessStatusCode)
+                    {
+                        var responseBody = await response.Content.ReadFromJsonAsync<JsonElement>();
+
+                        HttpContext.Session.SetString("MaKhachHang", responseBody.GetProperty("maKhachHang").GetString() ?? "");
+                        HttpContext.Session.SetString("HoTen", responseBody.GetProperty("hoTen").GetString() ?? "");
+                        HttpContext.Session.SetString("NgaySinh", responseBody.GetProperty("ngaySinh").GetString() ?? "");
+                        HttpContext.Session.SetString("SoDienThoai", responseBody.GetProperty("dienThoai").GetString() ?? "");
+                        HttpContext.Session.SetString("DiaChi", responseBody.GetProperty("diaChi").GetString() ?? "");
+                        HttpContext.Session.SetString("Email", responseBody.GetProperty("email").GetString() ?? "");
+                        HttpContext.Session.SetString("Role", responseBody.GetProperty("role").GetString() ?? "");
+
+
+                        return RedirectToAction("Index", "Home");
+                    }
+                    else
+                    {
+                        var error = await response.Content.ReadAsStringAsync();
+                        ViewBag.ErrorMessage = "Lỗi đăng ký: " + error;
+                        return View(model);
+                    }
+                }
+            }
         }
+
+
+
 
         public IActionResult ForgotPassword()
         {

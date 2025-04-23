@@ -1,7 +1,6 @@
-﻿using BTLW_BDT.APIS;
-using System.ComponentModel.DataAnnotations;
+﻿using System.ComponentModel.DataAnnotations;
 
-namespace BTLW_BDT.ViewModels
+namespace WebBanDienThoai.API.ViewModels
 {
     public class RegisterVM
     {
@@ -76,17 +75,17 @@ namespace BTLW_BDT.ViewModels
 
 
         // Phương thức kiểm tra email hợp lệ
-        public bool IsEmailValid()
-        {
-            // Kiểm tra tính hợp lệ của email qua API (phương thức ValidateEmail đã đồng bộ)
-            return EmailValidator.ValidateEmail(this.Email);
-        }
+        //public bool IsEmailValid()
+        //{
+        //    // Kiểm tra tính hợp lệ của email qua API (phương thức ValidateEmail đã đồng bộ)
+        //    return EmailValidator.ValidateEmail(Email);
+        //}
 
-        public bool IsPhoneValid()
-        {
+        //public bool IsPhoneValid()
+        //{
 
-            return PhoneValidator.ValidatePhoneNumber(this.DienThoai);
-        }
+        //    return PhoneValidator.ValidatePhoneNumber(DienThoai);
+        //}
 
     }
 }
