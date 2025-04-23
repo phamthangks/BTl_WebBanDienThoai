@@ -43,59 +43,9 @@ namespace BTLW_BDT.Areas.Admin.Controllers
         }
 
         [Route("QuanLyHoaDon")]
-        public IActionResult QuanLyHoaDon(string searchQuery, int? page)
-        {
-            int pageSize = 15;
-            int pageNumber = page ?? 1;
-
-            // Truyền giá trị searchQuery vào ViewData để sử dụng trong view
-            ViewData["searchQuery"] = searchQuery;
-
-            DateTime? searchDate = null;
-            if (DateTime.TryParse(searchQuery, out DateTime parsedDate))
-            {
-                searchDate = parsedDate.Date; // Lấy chỉ phần ngày, bỏ giờ phút giây
-            }
-
-              // Dereference of a possibly null reference.
-            var lstSanPham = from hdb in db.HoaDonBans
-                             join kh in db.KhachHangs on hdb.MaKhachHang equals kh.MaKhachHang
-                             where string.IsNullOrEmpty(searchQuery)
-                                   || hdb.MaHoaDon.Contains(searchQuery)  // Tìm theo Mã Hóa Đơn
-                                   || kh.TenKhachHang.Contains(searchQuery)  // Tìm theo Tên Khách Hàng
-                                   || hdb.PhiGiaoHang.ToString().Contains(searchQuery)
-                                   || hdb.PhuongThucThanhToan.Contains(searchQuery)  // Tìm theo Phương thức thanh toán
-                                   || hdb.KhuyenMai.ToString().Contains(searchQuery)  // Tìm theo Khuyến Mại
-                                   || hdb.TongTien.ToString().Contains(searchQuery)  // Tìm theo Tổng Tiền
-                                   || (searchDate.HasValue && hdb.ThoiGianLap.Date == searchDate.Value)
-                                   || db.ChiTietHoaDonBans.Where(cthdb => cthdb.MaHoaDon == hdb.MaHoaDon).Any(cthdb => cthdb.MaSanPham.Contains(searchQuery)) // Tìm theo Mã sản phẩm
-                                   || kh.SoDienThoai.Contains(searchQuery)
-                                   || hdb.DiaChiGiaoHang.Contains(searchQuery)
-                                   || hdb.MaNhanVien.Contains(searchQuery)
-                             select new
-                             {
-                                 MaHDB = hdb.MaHoaDon,
-                                 PTTT = hdb.PhuongThucThanhToan,
-                                 PhiGH = hdb.PhiGiaoHang,
-                                 TT = hdb.TongTien,
-                                 KM = hdb.KhuyenMai,
-                                 Time = hdb.ThoiGianLap,
-                                 MaNV = hdb.MaNhanVien,
-                                 TenKH = kh.TenKhachHang,
-                                 SDT = kh.SoDienThoai,
-                                 DC = hdb.DiaChiGiaoHang,
-                                 ProductDetails = db.ChiTietHoaDonBans
-                                                    .Where(cthdb => cthdb.MaHoaDon == hdb.MaHoaDon)
-                                                    .Select(cthdb => new
-                                                    {
-                                                        SL = cthdb.SoLuongBan,
-                                                        MaSp = cthdb.MaSanPham
-                                                    }).ToList()
-                             };
-            // Dereference of a possibly null reference.
-
-            var pagedList = lstSanPham.ToPagedList(pageNumber, pageSize);
-            return View(pagedList);
+        public IActionResult QuanLyHoaDon()
+        {   
+            return View();
         }
 
 
