@@ -4,14 +4,11 @@
     ViewData["title"] = "DashBoard";
     Layout = "~/Areas/Admin/Views/Shared/_LayoutAdmin.cshtml";
 }
-
 <!DOCTYPE html>
 <html>
 <head>
     <meta name="viewport" content="width=device-width" />
-    <title>
-        DsshBoard
-    </title>
+    <title>DashBoard</title>
     <style>
         .filter-select {
             width: 15%;
@@ -33,16 +30,16 @@
     <h3>DashBoard Statistic</h3>
     <div class="row">
         <div class="col-md-3">
-            <p> Thống kê sản phẩm</p>
-            @ViewBag.CountProduct
+            <p>Thống kê sản phẩm</p>
+            <span id="count-product">Đang tải...</span>
         </div>
         <div class="col-md-3">
-            <p> Thống kê hóa đơn bán</p>
-            @ViewBag.CountCTHDB
+            <p>Thống kê hóa đơn bán</p>
+            <span id="count-cthdb">Đang tải...</span>
         </div>
         <div class="col-md-3">
-            <p> Thống kê giỏ hàng</p>
-            @ViewBag.CountCTGH
+            <p>Thống kê giỏ hàng</p>
+            <span id="count-ctgh">Đang tải...</span>
         </div>
 
         <div style="width:30%">
@@ -51,10 +48,10 @@
             <input type="date" class="form-control" id="date-from" />
             <label>Đến ngày</label>
             <input type="date" class="form-control" id="date-to" />
-            <button style="margin-top:10px"id="filterbutton" class="btn btn-primary">Lọc</button>
+            <button style="margin-top:10px" id="filterbutton" class="btn btn-primary">Lọc</button>
         </div>
-
     </div>
+
     <div class="col-md-12">
         <p> Biểu đồ thống kê</p>
         <div id="myfirstchart" style="height:250px; width: 60%;"></div>
@@ -65,63 +62,80 @@
     </div>
 </body>
 
-@section Scripts {
-    <script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/morris.js/0.5.1/morris.min.js"></script>
+
+<script>
         $(document).ready(function () {
+            // Gọi API thống kê sản phẩm, hóa đơn, giỏ hàng
+            $.ajax({
+                url: 'https://localhost:7145/api/BieuDoAPI/GetThongKe',
+                method: 'GET',
+                success: function (res) {
+                    $('#count-product').text(res.countProduct);
+                    $('#count-cthdb').text(res.countCTHDB);
+                    $('#count-ctgh').text(res.countCTGH);
+                },
+                error: function () {
+                    $('#count-product, #count-cthdb, #count-ctgh').text('Lỗi tải dữ liệu');
+                }
+            });
+
+            // Cập nhật biểu đồ Morris.js
             var ChartMorris = new Morris.Line({
                 element: 'myfirstchart',
                 data: [],
                 xkey: 'date',
                 xLabelFormat: function (x) {
-                    return new Date(x).toLocaleDateString();
+    return new Date(x).toLocaleDateString();
                 },
                 ykeys: ['sold', 'quantity', 'profit'],
                 labels: ["Số lượng bán ra", "Doanh thu", "Lợi nhuận"]
             });
 
             $("#filterbutton").click(function () {
-
                 var fromDate = $("#date-from").val();
                 var toDate = $("#date-to").val();
 
-
                 console.log("Loading chart data...");
                 $.ajax({
-                    url: "@Url.Action("FilterData", "Admin")", // Đường dẫn đến phương thức trong controller
-                    type: 'POST', // Phương thức HTTP là POST
-                    data: {
-                        fromDate: fromDate, toDate: toDate
-                    },
+                    url: 'https://localhost:7145/api/BieuDoAPI/GetChartData',
+                    type: 'POST',
+                    contentType: 'application/json',
+                    data: JSON.stringify({ fromDate: fromDate, toDate: toDate }),
                     success: function (response) {
-                        console.log("Data received:", response); // Kiểm tra dữ liệu trả về
-                        if (response && response.data) {
-                            // Cập nhật biểu đồ
-                            ChartMorris.setData(response.data.map(function (item) {
-                                return {
-                                    date: item.date,
-                                    sold: item.sold,
-                                    quantity: item.quantity,
-                                    profit: item.profit
-                                };
-                            }));
+                        console.log("Data received:", response);
+
+                        var chartData = response?.data?.$values;
+
+                        if (Array.isArray(chartData)) {
+                           ChartMorris.setData(chartData
+        .filter(item => item.date && item.sold !== null) // bỏ null hoặc lỗi
+        .map(item => ({
+            date: item.date,
+            sold: parseInt(item.sold) || 0,
+            quantity: parseFloat(item.quantity) || 0,
+            profit: parseFloat(item.profit) || 0
+        }))
+    );
+
 
                             // Cập nhật tổng doanh thu và lợi nhuận
-                            $("#total-revenue").text(response.totalRevenue.toLocaleString());
-                            $("#total-profit").text(response.totalProfit.toLocaleString());
+                            $("#total-revenue").text((response.totalRevenue ?? 0).toLocaleString());
+                            $("#total-profit").text((response.totalProfit ?? 0).toLocaleString());
                         } else {
-                            console.warn("No data received for Morris chart update.");
+                            console.warn("Không nhận được dữ liệu phù hợp để cập nhật biểu đồ.");
                             ChartMorris.setData([]);
                             $("#total-revenue").text("0");
                             $("#total-profit").text("0");
                         }
                     },
                     error: function (error) {
-                        console.error("Error fetching data:", error);
+                        console.error("Lỗi khi gọi API biểu đồ:", error);
                     }
                 });
             });
         });
+</script>
 
-    </script>
-}
 </html>

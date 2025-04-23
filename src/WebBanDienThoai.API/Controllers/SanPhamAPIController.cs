@@ -15,14 +15,67 @@ namespace WebBanDienThoai.API.Controllers
         {
             _context = context;
         }
-        [HttpGet]
-        public IEnumerable<SanPham> GetProducts()
+        [HttpGet("GetProduct")]
+        public IEnumerable<object> GetAllProduct()
         {
-            return _context.SanPhams
-                     .Include(sp => sp.Roms)
-                     .Include(sp => sp.MauSacs)
-                     .OrderBy(x => x.TenSanPham)
-                     .ToList();
+            var sanPhams = _context.SanPhams
+                .Select(sp => new
+                {
+                    MaSanPham = sp.MaSanPham,
+                    TenSanPham = sp.TenSanPham,
+                    SoLuongTonKho = sp.SoLuongTonKho,
+                    DonGiaBanGoc = sp.DonGiaBanGoc,
+                    DonGiaBanRa = sp.DonGiaBanRa,
+                    KhuyenMai = sp.KhuyenMai,
+                    AnhDaiDien = sp.AnhDaiDien,
+                    DanhSachAnh = sp.AnhSanPhams.Select(a => new
+                    {
+                        TenFile = a.TenFile,
+                        MaMau = a.MaMau
+                    }).ToList()
+                }).ToList();
+
+            return sanPhams;
+        }
+
+        [HttpGet("TimKiemSanPham")]
+        public IActionResult TimKiemSanPham(string? searchQuery)
+        {
+            var lstSanPham = _context.SanPhams.AsNoTracking()
+                .Where(x => string.IsNullOrEmpty(searchQuery)
+                            || x.MaSanPham.Contains(searchQuery)
+                            || x.TenSanPham.Contains(searchQuery)
+                            || x.AnhDaiDien.Contains(searchQuery)
+                            || x.ThoiGianBaoHanh.ToString().Contains(searchQuery)
+                            || x.SoLuongTonKho.ToString().Contains(searchQuery)
+                            || x.DonGiaBanGoc.ToString().Contains(searchQuery)
+                            || x.DonGiaBanRa.ToString().Contains(searchQuery)
+                            || x.KhuyenMai.ToString().Contains(searchQuery)
+                            || x.DanhBa.Contains(searchQuery)
+                            || x.DenFlash.Contains(searchQuery)
+                            || x.CongNgheManHinh.Contains(searchQuery)
+                            || x.DoSangToiDa.ToString().Contains(searchQuery)
+                            || x.LoaiPin.Contains(searchQuery)
+                            || x.BaoMatNangCao.Contains(searchQuery)
+                            || x.GhiAmMacDinh.Contains(searchQuery)
+                            || x.JackTaiNghe.Contains(searchQuery)
+                            || x.MangDiDong.Contains(searchQuery)
+                            || x.Sim.Contains(searchQuery)
+                            || x.MaHang.Contains(searchQuery)
+                            || x.ManHinh.Contains(searchQuery)
+                            || x.Pin.Contains(searchQuery)
+                            || x.Camera.Contains(searchQuery)
+                            || x.KichThuoc.Contains(searchQuery)
+                            || x.Chip.Contains(searchQuery)
+                            || x.Ram.Contains(searchQuery))
+                .OrderBy(x => x.TenSanPham)
+                .ToList();
+
+            return Ok(new
+            {
+                TotalCount = lstSanPham.Count,
+                Data = lstSanPham
+            });
         }
 
         [HttpGet("GetProductsByID/{maSanPham}")]

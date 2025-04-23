@@ -9,12 +9,10 @@
 }
 
 <h1>Danh Mục Sản Phẩm</h1>
-<form method="get" asp-action="QuanLyHoaDon">
-    <div class="input-group mb-3">
-        <input style="padding:0" type="text" class="form-control" placeholder="Tìm kiếm tất cả thông tin..." name="searchQuery" value="@ViewData["searchQuery"]" />
-        <button style=" margin:0" class="btn btn-outline-secondary" type="submit">Tìm kiếm</button>
-    </div>
-</form>
+<div class="input-group mb-3">
+    <input id="searchBox" style="padding:0" type="text" class="form-control" placeholder="Tìm kiếm tất cả thông tin..." />
+    <button id="btnSearch" style="margin:0" class="btn btn-outline-secondary">Tìm kiếm</button>
+</div>
 
 <p>@TempData["Messege"]</p>
 <a onclick="showHideDiveInsertData('displayForm'); return false;" class="btn btn-primary">Thêm sản phẩm bằng API</a>
@@ -1264,155 +1262,227 @@
             </th>
         </tr>
     </thead>
-    <tbody>
-        @{
-            int i = 0;
-            string @cls = "table-success";
-        }
-        @foreach (var item in Model)
-        {
-            i = i + 1;
-            cls = "table-success";
-            if (i % 2 == 0)
-            {
-                cls = "table-primary";
-            }
-            <tr class="@cls">
-                <td style="text-align:center">
-                    @i
-                </td>
-                <td style="text-align:center">
-                    @Html.DisplayFor(modelItem => item.MaSanPham)
-                </td>
-                <td style="text-align:center">
-                    @Html.DisplayFor(modelItem => item.TenSanPham)
-                </td>
-                @* <td class="d-flex justify-content-center align-items-center" >
-                    <img class="img-fluid" style="width:35px;height:50px;" src="@Url.Content("~/PhoneImages/anh/" + item.AnhDaiDien)" alt="Product Image">
-                </td>
- *@
-                <td style="text-align:center">
-                    @Html.DisplayFor(modelItem => item.SoLuongTonKho)
-                </td>
-                <td style="text-align:center">
-                    @Html.DisplayFor(modelItem => item.DonGiaBanGoc)
-                </td>
-                <td style="text-align:center">
-                    @Html.DisplayFor(modelItem => item.DonGiaBanRa)
-                </td>
-                <td style="text-align:center">
-                    @Html.DisplayFor(modelItem => item.KhuyenMai)
-                </td>
-                <td>
-                    <a href="#" onclick="editProduct('@item.MaSanPham'); return false;" class="btn btn-danger delete-btn">Sửa</a>
-                    <a onclick="deleteProduct('https://localhost:7145/api/sanphamapi','@item.MaSanPham'); return false;" value="Delete" class="btn btn-danger delete-btn">Xóa</a>
-                    <!-- View Image Button -->
-                    <button type="button" class="btn btn-danger delete-btn" data-bs-toggle="modal" data-bs-target="#imageModal_@item.MaSanPham">
-                        Xem ảnh
-                    </button>
+    <tbody id="productBody">
+    </tbody>
+    <div id="modalContainer"></div>
 
-                    <!-- Modal cho từng sản phẩm -->
-                    <div class="modal fade" id="imageModal_@item.MaSanPham" tabindex="-1" aria-labelledby="imageModalLabel_@item.MaSanPham" aria-hidden="true">
-                        <div class="modal-dialog modal-dialog-centered modal-lg">
-                            <div class="modal-content">
-                                <div class="modal-header">
-                                    <h5 class="modal-title" id="imageModalLabel_@item.MaSanPham">Ảnh Sản Phẩm - @item.TenSanPham</h5>
-                                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                                </div>
-                                <div class="modal-body text-center">
-                                    <!-- Hiển thị ảnh đại diện -->
-                                    @if (!string.IsNullOrEmpty(item.AnhDaiDien))
-                                    {
-                                        <div class="mb-4">
-                                            <h6 class="mb-2">Ảnh đại diện</h6>
-                                            <img src="~/PhoneImages/Images/@item.AnhDaiDien" 
-                                                class="img-fluid mb-3" 
-                                                alt="Ảnh đại diện"
-                                                style="max-height: 300px;">
-                                        </div>
-                                        <hr>
-                                    }
-                                    @{
-                                        var anhSanPhams = context.AnhSanPhams.Where(a => a.MaSanPham == item.MaSanPham).ToList();
-                                    }
+    <script type="text/javascript">
+             let url = "https://localhost:7145/api/SanPhamAPI/GetProduct";
 
-                                    @if (anhSanPhams.Any())
-                                    {
-                                        <!-- Giao diện slider -->
-                                        <div id="productCarousel_@item.MaSanPham" class="carousel slide" data-bs-ride="carousel">
-                                            <!-- Ảnh lớn -->
+             $(document).ready(function () {
+                 GetAllSanPham();
+             });
 
+             function GetAllSanPham() {
+                 $.ajax({
+                     url: url,
+                     method: 'GET',
+                     dataType: 'json',
+                     success: function (response) {
+                         const products = response.$values;
 
+                         let table = '';
+                         let modals = '';
 
-                                            <div class="color-info mb-2">
-                                                <h6 class="color-label">Màu: <span class="color-value"></span></h6>
-                                            </div>
+                         for (let i = 0; i < products.length; ++i) {
+                             const kh = products[i];
+                             const rowClass = i % 2 === 0 ? 'table-light' : 'table-secondary';
 
-                                            <div class="carousel-inner">
-                                                @foreach (var anh in anhSanPhams.Select((value, index) => new { value, index }))
-                                                {
-                                                    <div class="carousel-item @(anh.index == 0 ? "active" : "")" data-color="@anh.value.MaMau">
-                                                        <div class="d-flex justify-content-center align-items-center">
-                                                            <img src="~/PhoneImages/Images/@anh.value.TenFile"
-                                                                 class="img-fluid"
-                                                                 alt="Ảnh @(anh.index + 1)">
-                                                        </div>
-                                                    </div>
-                                                }
-                                            </div>
+                             // === Bảng sản phẩm ===
+                             table += `<tr class="${rowClass}">`;
+                             table += `<td>${i + 1}</td>`;
+                             table += `<td>${kh.maSanPham}</td>`;
+                             table += `<td>${kh.tenSanPham}</td>`;
+                             table += `<td>${kh.soLuongTonKho}</td>`;
+                             table += `<td>${kh.donGiaBanGoc.toLocaleString()} đ</td>`;
+                             table += `<td>${kh.donGiaBanRa.toLocaleString()} đ</td>`;
+                             table += `<td>${kh.khuyenMai}%</td>`;
+                             table += `<td>
+                                 <a href="#" onclick="editProduct('${kh.maSanPham}'); return false;" class="btn btn-warning btn-sm">Sửa</a>
+                                 <a href="#" onclick="deleteProduct('https://localhost:7145/api/sanphamapi','${kh.maSanPham}'); return false;" class="btn btn-danger btn-sm">Xóa</a>
+                                 <button type="button" class="btn btn-info btn-sm" data-bs-toggle="modal" data-bs-target="#imageModal_${kh.maSanPham}">
+                                     Xem ảnh
+                                 </button>
+                             </td>`;
+                             table += `</tr>`;
 
-                                            @if (anhSanPhams.Count > 1)
-                                            {
-                                                <button class="carousel-control-prev" type="button" data-bs-target="#productCarousel_@item.MaSanPham" data-bs-slide="prev">
-                                                    <span class="carousel-control-prev-icon" aria-hidden="true"></span>
-                                                    <span class="visually-hidden">Previous</span>
-                                                </button>
-                                                <button class="carousel-control-next" type="button" data-bs-target="#productCarousel_@item.MaSanPham" data-bs-slide="next">
-                                                    <span class="carousel-control-next-icon" aria-hidden="true"></span>
-                                                    <span class="visually-hidden">Next</span>
-                                                </button>
-                                            }
-                                        </div>
+                             // === Modal ảnh sản phẩm (tạm thời chỉ hiển thị ảnh đại diện) ===
+                             modals += `
+             <div class="modal fade" id="imageModal_${kh.maSanPham}" tabindex="-1" aria-labelledby="imageModalLabel_${kh.maSanPham}" aria-hidden="true">
+                 <div class="modal-dialog modal-dialog-centered modal-lg">
+                     <div class="modal-content">
+                         <div class="modal-header">
+                             <h5 class="modal-title" id="imageModalLabel_${kh.maSanPham}">Ảnh Sản Phẩm - ${kh.tenSanPham}</h5>
+                             <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                         </div>
+                         <div class="modal-body text-center">
+                             ${kh.anhDaiDien ? `
+                                 <div class="mb-4">
+                                     <h6 class="mb-2">Ảnh đại diện</h6>
+                                     <img src="/PhoneImages/Images/${kh.anhDaiDien}"
+                                          class="img-fluid mb-3"
+                                             alt="Ảnh đại diện"
+                                     style="max-height: 300px;">
+                            </div><hr>` : ''
+                            }
 
-                                        <!-- Thumbnail ảnh nhỏ -->
-                                        <div class="mt-3">
-                                            @foreach (var anh in anhSanPhams.Select((value, index) => new { value, index }))
-                                            {
-                                                <img src="~/PhoneImages/Images/@anh.value.TenFile"
-                                                     class="product-image mx-2"
-                                                     data-bs-target="#productCarousel_@item.MaSanPham"
-                                                     data-bs-slide-to="@anh.index"
-                                                     alt="Ảnh @(anh.index + 1)"
-                                                     style="width: 100px; height: auto; cursor: pointer;"
-                                                     onclick="selectThumbnail(this, @anh.index)">
-                                            }
-                                        </div>
-
-                                    }
-                                    else
-                                    {
-                                        <p>Không có ảnh cho sản phẩm này</p>
-                                    }
-                                </div>
-                            </div>
+                               ${kh.danhSachAnh && kh.danhSachAnh.$values && kh.danhSachAnh.$values.length > 0 ? `
+        <div id="productCarousel_${kh.maSanPham}" class="carousel slide" data-bs-ride="carousel">
+            <div class="carousel-inner">
+                ${kh.danhSachAnh.$values.map((anh, index) => `
+                    <div class="carousel-item ${index === 0 ? 'active' : ''}">
+                        <div class="d-flex justify-content-center align-items-center">
+                            <img src="/PhoneImages/Images/${anh.tenFile}" class="img-fluid" alt="Ảnh ${index + 1}">
                         </div>
                     </div>
-                </td>
+                `).join('')}
+            </div>
+            ${kh.danhSachAnh.$values.length > 1 ? `
+                <button class="carousel-control-prev" type="button" data-bs-target="#productCarousel_${kh.maSanPham}" data-bs-slide="prev">
+                    <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+                    <span class="visually-hidden">Previous</span>
+                </button>
+                <button class="carousel-control-next" type="button" data-bs-target="#productCarousel_${kh.maSanPham}" data-bs-slide="next">
+                    <span class="carousel-control-next-icon" aria-hidden="true"></span>
+                    <span class="visually-hidden">Next</span>
+                </button>
+            ` : ''}
+        </div>
 
-            </tr>
+        <div class="mt-3">
+            ${kh.danhSachAnh.$values.map((anh, index) => `
+                <img src="/PhoneImages/Images/${anh.tenFile}"
+                     class="product-image mx-2"
+                     data-bs-target="#productCarousel_${kh.maSanPham}"
+                     data-bs-slide-to="${index}"
+                     alt="Ảnh ${index + 1}"
+                     style="width: 100px; height: auto; cursor: pointer;">
+            `).join('')}
+        </div>` : '<p>Không có ảnh cho sản phẩm này</p>'}
+
+                    </div>
+                </div>
+            </div>
+        </div>`;
+
+                    }
+
+                    $("#productBody").html(table);
+                    $("#modalContainer").html(modals); // 👈 thêm modal vào một div riêng
+                },
+                error: function (xhr) {
+                    alert("Lỗi khi load dữ liệu: " + xhr.statusText);
+                }
+            });
         }
-    </tbody>
+
+    </script>
+
+    <script>
+            $('#btnSearch').on('click', function () {
+                const search = $('#searchBox').val();
+                $.ajax({
+                    url: `https://localhost:7145/api/SanPhamAPI/TimKiemSanPham?searchQuery=${encodeURIComponent(search)}`,
+                    method: 'GET',
+                    success: function (res) {
+                        let rows = '';
+                        let modals = '';
+                        const products = res.data?.$values || [];
+
+                        products.forEach((kh, index) => {
+                            const rowClass = index % 2 === 0 ? 'table-light' : 'table-secondary';
+
+                            rows += `<tr class="${rowClass}">`;
+                            rows += `<td>${index + 1}</td>`;
+                            rows += `<td>${kh.maSanPham}</td>`;
+                            rows += `<td>${kh.tenSanPham}</td>`;
+                            rows += `<td>${kh.soLuongTonKho}</td>`;
+                            rows += `<td>${kh.donGiaBanGoc.toLocaleString()} đ</td>`;
+                            rows += `<td>${kh.donGiaBanRa.toLocaleString()} đ</td>`;
+                            rows += `<td>${kh.khuyenMai}%</td>`;
+                            rows += `<td>
+                                <a href="#" onclick="editProduct('${kh.maSanPham}'); return false;" class="btn btn-warning btn-sm">Sửa</a>
+                                <a href="#" onclick="deleteProduct('https://localhost:7145/api/sanphamapi','${kh.maSanPham}'); return false;" class="btn btn-danger btn-sm">Xóa</a>
+                                <button type="button" class="btn btn-info btn-sm" data-bs-toggle="modal" data-bs-target="#imageModal_${kh.maSanPham}">
+                                    Xem ảnh
+                                </button>
+                            </td>`;
+                            rows += `</tr>`;
+
+                            modals += `
+                <div class="modal fade" id="imageModal_${kh.maSanPham}" tabindex="-1" aria-labelledby="imageModalLabel_${kh.maSanPham}" aria-hidden="true">
+                    <div class="modal-dialog modal-dialog-centered modal-lg">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title" id="imageModalLabel_${kh.maSanPham}">Ảnh Sản Phẩm - ${kh.tenSanPham}</h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                            </div>
+                            <div class="modal-body text-center">
+                                ${kh.anhDaiDien ? `
+                                    <div class="mb-4">
+                                        <h6 class="mb-2">Ảnh đại diện</h6>
+                                        <img src="/PhoneImages/Images/${kh.anhDaiDien}"
+                                             class="img-fluid mb-3"
+                                             alt="Ảnh đại diện"
+                                             style="max-height: 300px;">
+                                    </div><hr>` : ''
+                                    }
+
+                                       ${kh.danhSachAnh && kh.danhSachAnh.$values && kh.danhSachAnh.$values.length > 0 ? `
+                                           <div id="productCarousel_${kh.maSanPham}" class="carousel slide" data-bs-ride="carousel">
+                <div class="carousel-inner">
+                    ${kh.danhSachAnh.$values.map((anh, index) => `
+                        <div class="carousel-item ${index === 0 ? 'active' : ''}">
+                            <div class="d-flex justify-content-center align-items-center">
+                                <img src="/PhoneImages/Images/${anh.tenFile}" class="img-fluid" alt="Ảnh ${index + 1}">
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
+                ${kh.danhSachAnh.$values.length > 1 ? `
+                    <button class="carousel-control-prev" type="button" data-bs-target="#productCarousel_${kh.maSanPham}" data-bs-slide="prev">
+                        <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+                        <span class="visually-hidden">Previous</span>
+                    </button>
+                    <button class="carousel-control-next" type="button" data-bs-target="#productCarousel_${kh.maSanPham}" data-bs-slide="next">
+                        <span class="carousel-control-next-icon" aria-hidden="true"></span>
+                        <span class="visually-hidden">Next</span>
+                    </button>
+                ` : ''}
+            </div>
+
+            <div class="mt-3">
+                ${kh.danhSachAnh.$values.map((anh, index) => `
+                    <img src="/PhoneImages/Images/${anh.tenFile}"
+                         class="product-image mx-2"
+                         data-bs-target="#productCarousel_${kh.maSanPham}"
+                         data-bs-slide-to="${index}"
+                         alt="Ảnh ${index + 1}"
+                         style="width: 100px; height: auto; cursor: pointer;">
+                `).join('')}
+            </div>` : '<p>Không có ảnh cho sản phẩm này</p>'}
+
+                        </div>
+                    </div>
+                </div>
+            </div>`;
+                    });
+
+                    $('#productBody').html(rows);
+                    $('#modalContainer').html(modals);
+                },
+                error: function (xhr) {
+                    console.error('Lỗi:', xhr.responseText);
+                }
+            });
+        });
+    </script>
 </table>
 
 
 
 <!-- Modal hiển thị hnh ảnh -->
-@Html.PagedListPager(Model, page => Url.Action("DanhMucSanPham", new { page = page }),
-            new PagedListRenderOptions()
-        {
-            LiElementClasses = new List<String> { "page-item" },
-            PageClasses = new List<String> { "page-link" }
-        })
+
 
 <style>
     /* Styling the Edit link */
