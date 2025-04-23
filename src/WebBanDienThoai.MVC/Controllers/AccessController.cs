@@ -10,6 +10,7 @@ using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using System.Net.Http;
 using static System.Runtime.InteropServices.JavaScript.JSType;
+using BTLW_BDT.Models.Api;
 
 namespace BTLW_BDT.Controllers
 {
@@ -59,9 +60,10 @@ namespace BTLW_BDT.Controllers
                     HttpContext.Session.SetString("AnhDaiDien", json.GetProperty("anhDaiDien").GetString() ?? "");
                     HttpContext.Session.SetString("Role", role);
                     HttpContext.Session.SetString("AvatarUrl", json.GetProperty("avatarUrl").GetString() ?? "");
-                    HttpContext.Session.SetString("Email", json.GetProperty("email").GetString() ?? "");
+              
                     if (role == "Customer")
                     {
+                        HttpContext.Session.SetString("Email", json.GetProperty("email").GetString() ?? "");
                         HttpContext.Session.SetString("MaKhachHang", json.GetProperty("maKhachHang").GetString() ?? "");
                         HttpContext.Session.SetString("HoTen", json.GetProperty("tenKhachHang").GetString() ?? "");
                         return RedirectToAction("Index", "Home");
@@ -260,10 +262,10 @@ namespace BTLW_BDT.Controllers
             return RedirectToAction("ForgotPassword");
         }
 
-        private class ApiErrorResponse
-        {
-            public string? Message { get; internal set; }
-        }
+        //private class ApiErrorResponse
+        //{
+        //    public string? Message { get; internal set; }
+        //}
 
         //private void SendResetCodeEmail(string email, int code)
         //{
