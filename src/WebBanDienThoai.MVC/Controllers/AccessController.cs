@@ -16,13 +16,13 @@ namespace BTLW_BDT.Controllers
     public class AccessController : Controller
     {
         //BtlLtwQlbdtContext db = new BtlLtwQlbdtContext();
-        private readonly BtlLtwQlbdtContext db;
+        //private readonly BtlLtwQlbdtContext db;
    
-        public AccessController(BtlLtwQlbdtContext context)
-        {
-            db = context;
+        //public AccessController(BtlLtwQlbdtContext context)
+        //{
+        //    db = context;
 
-        }
+        //}
 
         [HttpGet]
         public IActionResult Login()
