@@ -5,6 +5,7 @@ using Microsoft.EntityFrameworkCore;
 using System.Text.RegularExpressions;
 using WebBanDienThoai.API.Helpers;
 using WebBanDienThoai.API.Models.Api;
+using WebBanDienThoai.API.ViewModels;
 
 namespace WebBanDienThoai.API.Controllers
 {
@@ -76,6 +77,34 @@ namespace WebBanDienThoai.API.Controllers
                     existingCustomer.AnhDaiDien
                 }
             });
+        }
+
+
+
+        [HttpPost("ChangePassword")]
+        public async Task<IActionResult> ChangePassword([FromBody] ChangePasswordVM model)
+        {
+            if (!ModelState.IsValid)
+                return BadRequest("Dữ liệu không hợp lệ.");
+
+            var user = await (from tk in _context.TaiKhoans
+                              join kh in _context.KhachHangs on tk.TenDangNhap equals kh.TenDangNhap
+                              where kh.MaKhachHang == model.MaKhachHang
+                              select tk).FirstOrDefaultAsync();
+
+            if (user == null)
+                return NotFound("Không tìm thấy tài khoản người dùng.");
+
+            // So sánh mật khẩu hiện tại
+            string hashedCurrentPassword = model.CurrentPassword.ToSHA256Hash("MySaltKey");
+            if (user.MatKhau != hashedCurrentPassword)
+                return BadRequest("Mật khẩu hiện tại không đúng.");
+
+            // Cập nhật mật khẩu mới
+            user.MatKhau = model.NewPassword.ToSHA256Hash("MySaltKey");
+            await _context.SaveChangesAsync();
+
+            return Ok("Đổi mật khẩu thành công.");
         }
 
     }

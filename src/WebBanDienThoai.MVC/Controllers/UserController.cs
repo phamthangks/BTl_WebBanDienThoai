@@ -113,44 +113,86 @@ namespace BTLW_BDT.Controllers
         }
 
         // Action xử lý đổi mật khẩu
+        //[HttpPost]
+        //public async Task<IActionResult> ChangePassword(ChangePasswordVM model)
+        //{
+        //    if (ModelState.IsValid)
+        //    {
+        //        string userId = HttpContext.Session.GetString("MaKhachHang");
+
+        //        var user = await (from tk in _context.TaiKhoans
+        //                          join kh in _context.KhachHangs on tk.TenDangNhap equals kh.TenDangNhap
+        //                          where kh.MaKhachHang == userId
+        //                          select tk).FirstOrDefaultAsync();
+
+
+        //        if (user != null)
+        //        {
+        //            // Hash mật khẩu hiện tại và so sánh
+        //            string hashedCurrentPassword = model.CurrentPassword.ToSHA256Hash("MySaltKey");
+        //            if (user.MatKhau == hashedCurrentPassword)
+        //            {
+        //                // Cập nhật mật khẩu mới sau khi hash
+        //                user.MatKhau = model.NewPassword.ToSHA256Hash("MySaltKey");
+        //                await _context.SaveChangesAsync();
+
+        //                // Thêm thông báo thành công vào TempData
+        //                TempData["SuccessMessage"] = "Đổi mật khẩu thành công!";
+
+        //                return RedirectToAction("Profile");
+        //            }
+        //            else
+        //            {
+        //                ModelState.AddModelError("CurrentPassword", "Mật khẩu hiện tại không đúng.");
+        //            }
+        //        }
+        //        else
+        //        {
+        //            ModelState.AddModelError("CurrentPassword", "Không tìm thấy tài khoản người dùng.");
+        //        }
+        //    }
+        //    return View(model);
+        //}
+
         [HttpPost]
         public async Task<IActionResult> ChangePassword(ChangePasswordVM model)
         {
-            if (ModelState.IsValid)
+            if (!ModelState.IsValid)
+                return View(model);
+
+            string? maKhachHang = HttpContext.Session.GetString("MaKhachHang");
+
+            if (string.IsNullOrEmpty(maKhachHang))
             {
-                string userId = HttpContext.Session.GetString("MaKhachHang");
+                ModelState.AddModelError("", "Không xác định được người dùng.");
+                return View(model);
+            }
 
-                var user = await (from tk in _context.TaiKhoans
-                                  join kh in _context.KhachHangs on tk.TenDangNhap equals kh.TenDangNhap
-                                  where kh.MaKhachHang == userId
-                                  select tk).FirstOrDefaultAsync();
+            using (var httpClient = new HttpClient())
+            {
+                httpClient.BaseAddress = new Uri("https://localhost:7145/"); 
 
-
-                if (user != null)
+                var payload = new
                 {
-                    // Hash mật khẩu hiện tại và so sánh
-                    string hashedCurrentPassword = model.CurrentPassword.ToSHA256Hash("MySaltKey");
-                    if (user.MatKhau == hashedCurrentPassword)
-                    {
-                        // Cập nhật mật khẩu mới sau khi hash
-                        user.MatKhau = model.NewPassword.ToSHA256Hash("MySaltKey");
-                        await _context.SaveChangesAsync();
+                    MaKhachHang = maKhachHang,
+                    CurrentPassword = model.CurrentPassword,
+                    NewPassword = model.NewPassword
+                };
 
-                        // Thêm thông báo thành công vào TempData
-                        TempData["SuccessMessage"] = "Đổi mật khẩu thành công!";
+                var response = await httpClient.PostAsJsonAsync("api/UserAPI/ChangePassword", payload);
 
-                        return RedirectToAction("Profile");
-                    }
-                    else
-                    {
-                        ModelState.AddModelError("CurrentPassword", "Mật khẩu hiện tại không đúng.");
-                    }
+                if (response.IsSuccessStatusCode)
+                {
+                    TempData["SuccessMessage"] = "Đổi mật khẩu thành công!";
+                    return RedirectToAction("Profile");
                 }
                 else
                 {
-                    ModelState.AddModelError("CurrentPassword", "Không tìm thấy tài khoản người dùng.");
+                    var error = await response.Content.ReadAsStringAsync();
+                    ModelState.AddModelError("", $"Lỗi đổi mật khẩu: {error}");
                 }
             }
+
             return View(model);
         }
     }
